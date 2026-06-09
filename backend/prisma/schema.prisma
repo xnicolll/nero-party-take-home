@@ -7,4 +7,96 @@ datasource db {
   url      = "file:./dev.db"
 }
 
-// Design your schema here
+// A listening party. `joinCode` is the shareable handle (e.g. EMBER-4417).
+// Live state (heat, position, sync window) is NOT stored here — it lives in the
+// in-memory Room object. SQLite holds only durable facts.
+model Party {
+  id             String   @id @default(cuid())
+  joinCode       String   @unique
+  name           String
+  lane           String // genre lane, see LANES in constants
+  maxSongs       Int // 3..12
+  chillsBudget   Int // scarce CHILLS tokens per person (1..5)
+  songLengthMode String   @default("full") // "full" | "clip" (~45s)
+  phase          String   @default("lobby") // lobby | party | finale | coronation
+  hostToken      String // opaque secret; only the holder may start/skip/end
+  createdAt      DateTime @default(now())
+
+  participants Participant[]
+  songs        QueuedSong[]
+  reactions    Reaction[]
+  result       Result?
+}
+
+// A person (or bot) in a party. Bots have isBot=true and no socket.
+model Participant {
+  id         String   @id @default(cuid())
+  partyId    String
+  party      Party    @relation(fields: [partyId], references: [id], onDelete: Cascade)
+  name       String
+  color      String // hex, assigned from a palette on join
+  isBot      Boolean  @default(false)
+  isHost     Boolean  @default(false)
+  chillsLeft Int // initialized to party.chillsBudget
+  connected  Boolean  @default(true)
+  joinedAt   DateTime @default(now())
+
+  reactions  Reaction[]
+  addedSongs QueuedSong[]
+
+  @@index([partyId])
+}
+
+// A song in the queue, resolved from Audius.
+model QueuedSong {
+  id          String      @id @default(cuid())
+  partyId     String
+  party       Party       @relation(fields: [partyId], references: [id], onDelete: Cascade)
+  position    Int // 0-based queue order
+  audiusId    String
+  title       String
+  artist      String
+  durationSec Int
+  artworkUrl  String?
+  genre       String?
+  streamUrl   String // direct Audius stream the client plays
+  hue         Int // deterministic 0..359 for vinyl art tint
+  addedById   String
+  addedBy     Participant @relation(fields: [addedById], references: [id])
+  played      Boolean     @default(false)
+  createdAt   DateTime    @default(now())
+
+  reactions Reaction[]
+
+  @@unique([partyId, position])
+  @@index([partyId])
+}
+
+// Append-only event log. Heat/score are projections of these rows, kept in
+// memory during the party and snapshotted into Result at the end.
+model Reaction {
+  id            String      @id @default(cuid())
+  partyId       String
+  party         Party       @relation(fields: [partyId], references: [id], onDelete: Cascade)
+  songId        String
+  song          QueuedSong  @relation(fields: [songId], references: [id], onDelete: Cascade)
+  participantId String
+  participant   Participant @relation(fields: [participantId], references: [id])
+  type          String // drop | groove | feels | wtf | chills
+  frac          Float // 0..1 playback fraction the tap pinned to
+  positionMs    Int // absolute ms into the playable window
+  weight        Int // 1, or 3 for chills
+  isBot         Boolean     @default(false)
+  createdAt     DateTime    @default(now())
+
+  @@index([partyId, songId])
+}
+
+// The crowned results, snapshotted once at coronation so the page survives refresh.
+model Result {
+  id        String   @id @default(cuid())
+  partyId   String   @unique
+  party     Party    @relation(fields: [partyId], references: [id], onDelete: Cascade)
+  payload   String // JSON: { songOfNight, momentOfNight, ranked, superlatives }
+  createdAt DateTime @default(now())
+}
