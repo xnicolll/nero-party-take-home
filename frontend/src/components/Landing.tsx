@@ -1,0 +1,242 @@
+// ============================================================
+// NERO PARTY — landing: one path. scroll -> learn -> start.
+// Ported from the design's nero-lobby.jsx (StarField/FilmStrip/CycleWord).
+// ============================================================
+import { useEffect, useRef, useState } from 'react';
+import { CYCLE_WORDS, REACTION_ORDER } from '../lib/nero';
+import { Btn, Eyebrow, HeatShape, PersonDot, RGlyph, StarField, VinylArt } from './atoms';
+
+const STRIP_STEPS = [
+  {
+    n: '/01_start',
+    t: 'Start a party.',
+    d: 'Pick the rules. Share one link. Friends join. No accounts.',
+  },
+  {
+    n: '/02_queue',
+    t: 'One queue. Everyone adds.',
+    d: 'Everyone hears the same song at the same time.',
+  },
+  {
+    n: '/03_react',
+    t: 'Tap what you feel.',
+    d: 'Your tap sticks to that exact second. The drop. The bridge. That bit.',
+  },
+  {
+    n: '/04_sync',
+    t: 'Feel it together.',
+    d: '3 people tap within 2 seconds? That moment scores extra.',
+  },
+  {
+    n: '/05_chills',
+    t: 'Chills are rare.',
+    d: 'You only get a few all night. Worth 3×. Save them for goosebumps.',
+  },
+  {
+    n: '/06_crown',
+    t: 'One song wins.',
+    d: 'Songs race on a live board. Best moments battle 1v1. Then the crown.',
+  },
+];
+const DEMO_HUES = [28, 264, 330];
+const DEMO_PEOPLE = [
+  { name: 'You', color: '#E8743B' },
+  { name: 'Maya', color: '#C2703E' },
+  { name: 'Theo', color: '#5F8A4E' },
+];
+
+function CycleWord() {
+  const [txt, setTxt] = useState(CYCLE_WORDS[0]);
+  useEffect(() => {
+    let wi = 0,
+      i = CYCLE_WORDS[0].length,
+      mode: 'hold' | 'del' | 'type' = 'hold',
+      alive = true,
+      t: ReturnType<typeof setTimeout>;
+    function step() {
+      if (!alive) return;
+      let delay = 75;
+      if (mode === 'hold') {
+        mode = 'del';
+        delay = 1900;
+      } else if (mode === 'del') {
+        i -= 1;
+        setTxt(CYCLE_WORDS[wi % CYCLE_WORDS.length].slice(0, i));
+        delay = 48;
+        if (i === 0) {
+          wi += 1;
+          mode = 'type';
+          delay = 380;
+        }
+      } else {
+        const w = CYCLE_WORDS[wi % CYCLE_WORDS.length];
+        i += 1;
+        setTxt(w.slice(0, i));
+        delay = 82;
+        if (i === w.length) mode = 'hold';
+      }
+      t = setTimeout(step, delay);
+    }
+    t = setTimeout(step, 1400);
+    return () => {
+      alive = false;
+      clearTimeout(t);
+    };
+  }, []);
+  return <em>{txt}</em>;
+}
+
+function StripDemo({ i }: { i: number }) {
+  if (i === 1)
+    return (
+      <>
+        {DEMO_HUES.map((h) => (
+          <VinylArt key={h} hue={h} size={22} />
+        ))}
+      </>
+    );
+  if (i === 2)
+    return (
+      <>
+        {REACTION_ORDER.map((r) => (
+          <RGlyph key={r} type={r} size={13} />
+        ))}
+      </>
+    );
+  if (i === 3)
+    return (
+      <>
+        {DEMO_PEOPLE.map((p) => (
+          <PersonDot key={p.name} person={p} lit size={22} />
+        ))}
+      </>
+    );
+  if (i === 4) return <RGlyph type="chills" size={16} />;
+  if (i === 5) return <HeatShape buckets={[1, 3, 2, 6, 9, 4, 2, 5, 11, 6, 3, 1]} w={90} h={22} />;
+  return <span className="orb" style={{ width: 16, height: 16 }} />;
+}
+
+function FilmStrip() {
+  const outer = useRef<HTMLElement>(null);
+  const track = useRef<HTMLDivElement>(null);
+  const [prog, setProg] = useState(0);
+  useEffect(() => {
+    const onScroll = () => {
+      const el = outer.current;
+      if (!el) return;
+      const r = el.getBoundingClientRect();
+      const total = el.offsetHeight - window.innerHeight;
+      const p = Math.min(1, Math.max(0, -r.top / total));
+      setProg(p);
+    };
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+  const shift = () => {
+    const t = track.current;
+    if (!t) return 0;
+    return Math.max(0, t.scrollWidth - window.innerWidth);
+  };
+  const stepNo = Math.min(STRIP_STEPS.length, 1 + Math.floor(prog * STRIP_STEPS.length));
+  return (
+    <section ref={outer} id="how" className="strip-outer" style={{ height: '380vh' }}>
+      <div className="strip-sticky">
+        <div className="strip-head">
+          <Eyebrow>~/how_it_works</Eyebrow>
+          <div className="strip-rule">
+            <span style={{ width: prog * 100 + '%' }} />
+          </div>
+          <span className="strip-count">
+            {String(stepNo).padStart(2, '0')} / {String(STRIP_STEPS.length).padStart(2, '0')}
+          </span>
+        </div>
+        <div
+          ref={track}
+          className="strip-track"
+          style={{ transform: `translate3d(${-prog * shift()}px,0,0)` }}
+        >
+          {STRIP_STEPS.map((s, i) => (
+            <article key={i} className="strip-card">
+              <div className="strip-num">{s.n}</div>
+              <h3>{s.t}</h3>
+              <p>{s.d}</p>
+              <div className="strip-demo">
+                <StripDemo i={i} />
+              </div>
+            </article>
+          ))}
+          <div className="strip-endcap">
+            <div className="orb orb-sm" />
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+export function Landing({ onBegin }: { onBegin: () => void }) {
+  const toHow = () => {
+    const el = document.getElementById('how');
+    if (el) window.scrollTo({ top: el.offsetTop + 10, behavior: 'smooth' });
+  };
+  return (
+    <div className="landing">
+      <StarField />
+      <nav className="pillnav">
+        <span className="pillnav-brand">
+          <span className="pillnav-dot" />
+          nero party
+        </span>
+        <div className="pillnav-links">
+          <button className="pillnav-link" onClick={toHow}>
+            how it works
+          </button>
+        </div>
+        <span className="pillnav-cue">scroll ↓</span>
+      </nav>
+      <header className="hero">
+        <div className="hero-path">
+          ~/throw_a_listening_party <b>$</b>
+        </div>
+        <h1 className="hero-title">
+          nero <CycleWord />
+          <span className="cursor">▮</span>
+        </h1>
+        <p className="hero-sub">
+          a listening party where every second counts. queue with friends. react live. one song gets
+          crowned.
+        </p>
+        <div className="hero-stats">
+          <div className="stat-chip">
+            <b>1 link</b>
+            <span>to join</span>
+          </div>
+          <div className="stat-chip">
+            <b>5 taps</b>
+            <span>drop · groove · feels · wtf · chills</span>
+          </div>
+          <div className="stat-chip">
+            <b>2 sec</b>
+            <span>sync window</span>
+          </div>
+          <div className="stat-chip">
+            <b>1 crown</b>
+            <span>at the end</span>
+          </div>
+        </div>
+        <div className="hero-scroll">
+          <b>scroll to learn the ritual</b> ↓
+        </div>
+      </header>
+      <FilmStrip />
+      <section className="land-final">
+        <div className="orb orb-md" />
+        <h2 className="land-final-title">that's everything. ready?</h2>
+        <Btn big onClick={onBegin}>
+          start the party
+        </Btn>
+      </section>
+    </div>
+  );
+}

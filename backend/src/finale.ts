@@ -20,9 +20,7 @@ export function buildBracket(moments: MomentRuntime[]): [MomentRuntime, MomentRu
 
 export function activePair(finale: FinaleRuntime): [MomentRuntime, MomentRuntime] | null {
   if (finale.stage === 'final') {
-    return finale.finalists.length >= 2
-      ? [finale.finalists[0], finale.finalists[1]]
-      : null;
+    return finale.finalists.length >= 2 ? [finale.finalists[0], finale.finalists[1]] : null;
   }
   return finale.bracket[finale.round] ?? null;
 }

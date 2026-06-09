@@ -113,7 +113,12 @@ export function computeResults(room: Room): RawResults {
       song: by((s) => s.counts.drop || 0),
       stat: '',
     },
-    { key: 'MOST SYNCED', desc: 'collective moments hit together', song: by((s) => s.syncs), stat: '' },
+    {
+      key: 'MOST SYNCED',
+      desc: 'collective moments hit together',
+      song: by((s) => s.syncs),
+      stat: '',
+    },
     { key: 'MOST DIVISIVE', desc: 'split the room five ways', song: by(entropy), stat: '' },
     { key: 'SLOW BURNER', desc: 'heat spread end to end', song: by(slowBurn), stat: '' },
   ];
@@ -122,7 +127,8 @@ export function computeResults(room: Room): RawResults {
   if (superlatives[1].song) superlatives[1].stat = `${superlatives[1].song.syncs} syncs`;
   if (superlatives[2].song)
     superlatives[2].stat = `${Object.keys(superlatives[2].song.counts).length} reaction types`;
-  if (superlatives[3].song) superlatives[3].stat = `${superlatives[3].song.heat.toFixed(0)} total heat`;
+  if (superlatives[3].song)
+    superlatives[3].stat = `${superlatives[3].song.heat.toFixed(0)} total heat`;
 
   return { ranked, moments, superlatives };
 }

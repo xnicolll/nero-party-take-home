@@ -126,9 +126,21 @@ export function registerSocketHandlers(io: Server): void {
         isHost: false,
       } satisfies SocketData;
       socket.to(room.joinCode).emit('participantJoined', {
-        participant: { id: p.id, name: p.name, color: p.color, isBot: false, isHost: false, connected: true },
+        participant: {
+          id: p.id,
+          name: p.name,
+          color: p.color,
+          isBot: false,
+          isHost: false,
+          connected: true,
+        },
       });
-      ack?.({ ok: true, partyId: room.partyId, participantId: p.id, snapshot: toSnapshot(room, p.id) });
+      ack?.({
+        ok: true,
+        partyId: room.partyId,
+        participantId: p.id,
+        snapshot: toSnapshot(room, p.id),
+      });
     });
 
     // ---- reconnect / second tab ----
@@ -149,7 +161,14 @@ export function registerSocketHandlers(io: Server): void {
       } satisfies SocketData;
       prisma.participant.update({ where: { id: p.id }, data: { connected: true } }).catch(() => {});
       socket.to(room.joinCode).emit('participantJoined', {
-        participant: { id: p.id, name: p.name, color: p.color, isBot: p.isBot, isHost: p.isHost, connected: true },
+        participant: {
+          id: p.id,
+          name: p.name,
+          color: p.color,
+          isBot: p.isBot,
+          isHost: p.isHost,
+          connected: true,
+        },
       });
       ack?.({ ok: true, snapshot: toSnapshot(room, p.id), isHost });
     });
@@ -184,7 +203,8 @@ export function registerSocketHandlers(io: Server): void {
     socket.on('startParty', async (payload: any, ack?: (r: any) => void) => {
       const room = roomFromSocket(socket);
       if (!room) return ack?.({ ok: false, reason: 'No party' });
-      if (payload?.hostToken !== room.hostToken) return ack?.({ ok: false, reason: 'Not the host' });
+      if (payload?.hostToken !== room.hostToken)
+        return ack?.({ ok: false, reason: 'Not the host' });
       const res = await startParty(room);
       if (!res.ok) socket.emit('errorMsg', { code: 'start', message: res.reason });
       ack?.(res);
@@ -222,7 +242,9 @@ export function registerSocketHandlers(io: Server): void {
       p.socketIds.delete(socket.id);
       if (p.socketIds.size === 0) {
         p.connected = false;
-        prisma.participant.update({ where: { id: p.id }, data: { connected: false } }).catch(() => {});
+        prisma.participant
+          .update({ where: { id: p.id }, data: { connected: false } })
+          .catch(() => {});
         socket.to(room.joinCode).emit('participantLeft', { participantId: p.id });
       }
     });

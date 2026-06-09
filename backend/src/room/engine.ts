@@ -138,7 +138,14 @@ export function createRoom(
 
 export function addParticipantToRoom(
   room: Room,
-  row: { id: string; name: string; color: string; isBot: boolean; isHost: boolean; chillsLeft: number },
+  row: {
+    id: string;
+    name: string;
+    color: string;
+    isBot: boolean;
+    isHost: boolean;
+    chillsLeft: number;
+  },
 ): void {
   room.participants.set(row.id, {
     id: row.id,
@@ -182,7 +189,14 @@ async function spawnBot(
   room.botChills[row.id] = chills;
   addParticipantToRoom(room, row);
   emitRoom(room, 'participantJoined', {
-    participant: { id: row.id, name: row.name, color: row.color, isBot: true, isHost: false, connected: true },
+    participant: {
+      id: row.id,
+      name: row.name,
+      color: row.color,
+      isBot: true,
+      isHost: false,
+      connected: true,
+    },
   });
 }
 
@@ -265,7 +279,10 @@ function startSong(room: Room): void {
     const hottest = [...song.peaks].sort((a, b) => b.w - a.w)[0] ?? { c: 0.5, w: 0.08 };
     const peakMs = hottest.c * durMs;
     room.effectiveDurationMs = Math.min(CLIP_MS, durMs);
-    room.clipStartMs = Math.max(0, Math.min(peakMs - CLIP_LEAD_MS, durMs - room.effectiveDurationMs));
+    room.clipStartMs = Math.max(
+      0,
+      Math.min(peakMs - CLIP_LEAD_MS, durMs - room.effectiveDurationMs),
+    );
     const startFrac = room.clipStartMs / durMs;
     const endFrac = (room.clipStartMs + room.effectiveDurationMs) / durMs;
     wp = windowPeaks(song.peaks, startFrac, endFrac);
@@ -523,7 +540,9 @@ function crown(room: Room, moment: MomentRuntime | null): void {
   if (room.finale) room.finale.crownedMoment = moment;
   room.phase = 'coronation';
   const results = buildResultsDTO(room);
-  prisma.party.update({ where: { id: room.partyId }, data: { phase: 'coronation' } }).catch(() => {});
+  prisma.party
+    .update({ where: { id: room.partyId }, data: { phase: 'coronation' } })
+    .catch(() => {});
   prisma.result
     .upsert({
       where: { partyId: room.partyId },
