@@ -52,13 +52,14 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // auto-open the tutorial once when the lobby first appears
+  // auto-open the tutorial once when the host's lobby first appears.
+  // Guests arriving via the invite link have already seen the ritual, so skip it.
   useEffect(() => {
-    if (room.phase === 'lobby' && !tutShown) {
+    if (room.phase === 'lobby' && !tutShown && !joinCode) {
       setShowTut(true);
       setTutShown(true);
     }
-  }, [room.phase, tutShown]);
+  }, [room.phase, tutShown, joinCode]);
 
   const goHome = useCallback(() => {
     room.actions.reset();
@@ -140,7 +141,9 @@ export default function App() {
   } else if (room.phase === 'finale' && room.finale) {
     screen = <Playoff finale={room.finale} onVote={room.actions.vote} />;
   } else if (room.phase === 'coronation' && room.results) {
-    screen = <Coronation results={room.results} onRestart={goHome} />;
+    screen = (
+      <Coronation results={room.results} onRestart={goHome} getRecs={room.actions.getRecs} />
+    );
   } else {
     // transitional (waiting for the next bit of state)
     screen = (

@@ -17,6 +17,7 @@ export interface SongRuntime {
   artworkUrl: string | null;
   streamUrl: string;
   hue: number;
+  genre: string | null;
   addedById: string;
   position: number;
   peaks: Peak[];

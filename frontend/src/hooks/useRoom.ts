@@ -375,6 +375,10 @@ export function useRoom() {
   const skip = useCallback(() => socket.emit('hostSkip', { hostToken: hostTokenRef.current }), []);
   const end = useCallback(() => socket.emit('hostEnd', { hostToken: hostTokenRef.current }), []);
   const vote = useCallback((side: 0 | 1) => socket.emit('castVote', { side }), []);
+  const getRecs = useCallback(async () => {
+    const r = await emitAck<any>('getRecs', {});
+    return (r?.recs ?? []) as import('../lib/types').Rec[];
+  }, []);
   const reset = useCallback(() => {
     clearCreds();
     dispatch({ type: 'reset' });
@@ -396,6 +400,7 @@ export function useRoom() {
       skip,
       end,
       vote,
+      getRecs,
       reset,
     },
   };

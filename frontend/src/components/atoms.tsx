@@ -1,7 +1,7 @@
 // ============================================================
 // NERO PARTY — shared visual atoms (ported from nero-ui.jsx)
 // ============================================================
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { REACTIONS, mulberry32 } from '../lib/nero';
 import type { ReactionType } from '../lib/types';
 
@@ -35,6 +35,40 @@ export function VinylArt({
       }}
     >
       <span className="vinyl-hole" />
+    </div>
+  );
+}
+
+// Real Audius album art, with the generated vinyl as a graceful fallback.
+export function AlbumArt({
+  artworkUrl,
+  hue,
+  size = 64,
+  spinning,
+  radius,
+}: {
+  artworkUrl: string | null;
+  hue: number;
+  size?: number;
+  spinning?: boolean;
+  radius?: number;
+}) {
+  const [failed, setFailed] = useState(false);
+  if (!artworkUrl || failed) return <VinylArt hue={hue} size={size} spinning={spinning} />;
+  const r = radius ?? Math.round(size * 0.16);
+  return (
+    <div className="albumart" style={{ width: size, height: size, borderRadius: r }}>
+      <img src={artworkUrl} alt="" loading="lazy" onError={() => setFailed(true)} />
+    </div>
+  );
+}
+
+// Full-bleed blurred artwork = ambient color pulled from the album art.
+export function AmbientBackground({ artworkUrl }: { artworkUrl: string | null }) {
+  return (
+    <div className="ambient" aria-hidden>
+      {artworkUrl && <img key={artworkUrl} className="ambient-img" src={artworkUrl} alt="" />}
+      <div className="ambient-veil" />
     </div>
   );
 }

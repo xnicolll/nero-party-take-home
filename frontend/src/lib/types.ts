@@ -132,6 +132,10 @@ export interface Snapshot {
   results: ResultsDTO | null;
 }
 
+export interface Rec extends Track {
+  reason: string;
+}
+
 export interface ReactionAdded {
   songId: string;
   participantId: string;

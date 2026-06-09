@@ -175,15 +175,66 @@ function FilmStrip() {
   );
 }
 
+// vertical SVG spine on the left that draws as you scroll
+function ScrollSpine({ prog }: { prog: number }) {
+  const y = prog * 1000;
+  return (
+    <div className="scroll-spine">
+      <svg width="14" height="100%" viewBox="0 0 14 1000" preserveAspectRatio="none">
+        <line
+          className="spine-track"
+          x1="7"
+          y1="0"
+          x2="7"
+          y2="1000"
+          vectorEffect="non-scaling-stroke"
+        />
+        <line
+          className="spine-fill"
+          x1="7"
+          y1="0"
+          x2="7"
+          y2={y}
+          vectorEffect="non-scaling-stroke"
+        />
+      </svg>
+      <span className="spine-node" style={{ top: prog * 100 + '%' }} />
+    </div>
+  );
+}
+
 export function Landing({ onBegin }: { onBegin: () => void }) {
+  const [prog, setProg] = useState(0); // full-page scroll progress (spine)
+  const [navP, setNavP] = useState(0); // hero progress (nav swoop)
+
+  useEffect(() => {
+    const onScroll = () => {
+      const max = document.body.scrollHeight - window.innerHeight;
+      setProg(max > 0 ? Math.min(1, window.scrollY / max) : 0);
+      setNavP(Math.min(1, window.scrollY / (window.innerHeight * 0.6)));
+    };
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
   const toHow = () => {
     const el = document.getElementById('how');
     if (el) window.scrollTo({ top: el.offsetTop + 10, behavior: 'smooth' });
   };
+
+  // nav swoops from center-top down-left to dock beside the spine
+  const navShiftX = navP * (typeof window !== 'undefined' ? window.innerWidth / 2 - 150 : 300);
+  const navStyle = {
+    transform: `translateX(-50%) translate(${-navShiftX}px, ${navP * 4}px) scale(${1 - 0.08 * navP})`,
+    boxShadow: navP > 0.5 ? '0 10px 34px rgba(30,25,19,0.14)' : undefined,
+  };
+
   return (
     <div className="landing">
       <StarField />
-      <nav className="pillnav">
+      <ScrollSpine prog={prog} />
+      <nav className="pillnav swoop" style={navStyle}>
         <span className="pillnav-brand">
           <span className="pillnav-dot" />
           nero party
@@ -193,7 +244,7 @@ export function Landing({ onBegin }: { onBegin: () => void }) {
             how it works
           </button>
         </div>
-        <span className="pillnav-cue">scroll ↓</span>
+        <span className="pillnav-cue">{navP > 0.5 ? '↑ top' : 'scroll ↓'}</span>
       </nav>
       <header className="hero">
         <div className="hero-path">
@@ -207,7 +258,7 @@ export function Landing({ onBegin }: { onBegin: () => void }) {
           a listening party where every second counts. queue with friends. react live. one song gets
           crowned.
         </p>
-        <div className="hero-stats">
+        <div className="hero-stats bare">
           <div className="stat-chip">
             <b>1 link</b>
             <span>to join</span>

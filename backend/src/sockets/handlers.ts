@@ -20,6 +20,7 @@ import {
 } from '../room/engine.js';
 import { toSnapshot } from './emit.js';
 import { getTrack, searchTracks, streamUrl } from '../services/audius.js';
+import { buildRecs } from '../recommend.js';
 import type { Track } from '../types.js';
 
 interface SocketData {
@@ -220,6 +221,18 @@ export function registerSocketHandlers(io: Server): void {
       const room = roomFromSocket(socket);
       if (!room || payload?.hostToken !== room.hostToken) return;
       hostEnd(room);
+    });
+
+    // ---- recommendations (coronation) ----
+    socket.on('getRecs', async (_payload: any, ack?: (r: any) => void) => {
+      const room = roomFromSocket(socket);
+      if (!room) return ack?.({ recs: [] });
+      try {
+        const recs = await buildRecs(room, 6);
+        ack?.({ recs });
+      } catch {
+        ack?.({ recs: [] });
+      }
     });
 
     // ---- finale vote ----

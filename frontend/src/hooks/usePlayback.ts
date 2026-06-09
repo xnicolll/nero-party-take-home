@@ -2,10 +2,37 @@
 // NERO PARTY — usePlayback: one <audio>, server-anchored seek
 // The server is the clock. On each song change we seek to (clipStart +
 // position + latency) and play. Browsers block autoplay until a gesture, so
-// the Start/Join click primes it; otherwise we show a one-tap gate.
+// the Start/Join click "primes" the element by playing a silent clip (which
+// has a real src, so the unlock actually lands); a one-tap gate is the fallback.
 // ============================================================
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { CurrentDTO } from '../lib/types';
+
+// A valid, tiny silent WAV used only to unlock audio inside a user gesture.
+function makeSilentUrl(): string {
+  const sr = 8000;
+  const n = Math.floor(sr * 0.05);
+  const buf = new ArrayBuffer(44 + n);
+  const dv = new DataView(buf);
+  const ws = (o: number, s: string) => {
+    for (let i = 0; i < s.length; i++) dv.setUint8(o + i, s.charCodeAt(i));
+  };
+  ws(0, 'RIFF');
+  dv.setUint32(4, 36 + n, true);
+  ws(8, 'WAVE');
+  ws(12, 'fmt ');
+  dv.setUint32(16, 16, true);
+  dv.setUint16(20, 1, true);
+  dv.setUint16(22, 1, true);
+  dv.setUint32(24, sr, true);
+  dv.setUint32(28, sr, true);
+  dv.setUint16(32, 1, true);
+  dv.setUint16(34, 8, true);
+  ws(36, 'data');
+  dv.setUint32(40, n, true);
+  for (let i = 0; i < n; i++) dv.setUint8(44 + i, 128); // 8-bit silence
+  return URL.createObjectURL(new Blob([buf], { type: 'audio/wav' }));
+}
 
 export function usePlayback(current: CurrentDTO | null) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -13,10 +40,22 @@ export function usePlayback(current: CurrentDTO | null) {
   const primedRef = useRef(false);
   const [needsGesture, setNeedsGesture] = useState(false);
 
-  if (!audioRef.current && typeof Audio !== 'undefined') {
-    audioRef.current = new Audio();
-    audioRef.current.preload = 'auto';
-  }
+  // create + mount the element once (in the DOM so playback is reliable)
+  useEffect(() => {
+    if (!audioRef.current) {
+      const a = new Audio();
+      a.preload = 'auto';
+      a.volume = 1;
+      (a as HTMLAudioElement & { playsInline: boolean }).playsInline = true;
+      a.id = 'nero-audio';
+      audioRef.current = a;
+      document.body.appendChild(a);
+    }
+    const el = audioRef.current;
+    return () => {
+      el?.pause();
+    };
+  }, []);
 
   const seekAndPlay = useCallback((c: CurrentDTO) => {
     const audio = audioRef.current;
@@ -24,11 +63,12 @@ export function usePlayback(current: CurrentDTO | null) {
     const elapsed = Date.now() - c.serverTime;
     const seekMs = Math.max(0, c.clipStartMs + c.positionMs + elapsed);
     if (audio.src !== c.song.streamUrl) audio.src = c.song.streamUrl;
+    audio.muted = false;
     const apply = () => {
       try {
         audio.currentTime = seekMs / 1000;
       } catch {
-        /* will retry on canplay */
+        /* re-applied on loadedmetadata */
       }
       audio
         .play()
@@ -60,22 +100,22 @@ export function usePlayback(current: CurrentDTO | null) {
     primedRef.current = true;
     const audio = audioRef.current;
     if (!audio) return;
-    if (current) seekAndPlay(current);
-    else {
-      // unlock the element with a silent play/pause
-      audio
-        .play()
-        .then(() => audio.pause())
-        .catch(() => {});
+    if (current) {
+      seekAndPlay(current);
+      return;
     }
+    // No song loaded yet (host pressed Start). Unlock the element NOW with a
+    // silent clip that has a real src, so the later programmatic play() is allowed.
+    const silent = makeSilentUrl();
+    audio.src = silent;
+    audio
+      .play()
+      .then(() => {
+        audio.pause();
+        URL.revokeObjectURL(silent);
+      })
+      .catch(() => {});
   }, [current, seekAndPlay]);
-
-  // cleanup on unmount
-  useEffect(() => {
-    return () => {
-      audioRef.current?.pause();
-    };
-  }, []);
 
   return { needsGesture, prime };
 }

@@ -60,6 +60,7 @@ export function makeRuntimeSong(row: {
   artworkUrl: string | null;
   streamUrl: string;
   hue: number;
+  genre: string | null;
   addedById: string;
   position: number;
   played: boolean;
@@ -73,6 +74,7 @@ export function makeRuntimeSong(row: {
     artworkUrl: row.artworkUrl,
     streamUrl: row.streamUrl,
     hue: row.hue,
+    genre: row.genre,
     addedById: row.addedById,
     position: row.position,
     peaks: synthPeaks(row.audiusId, row.durationSec),

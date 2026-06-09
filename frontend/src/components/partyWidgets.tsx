@@ -6,7 +6,7 @@ import { useEffect, useMemo, useRef } from 'react';
 import { REACTIONS, REACTION_ORDER, fmtTime, waveform } from '../lib/nero';
 import type { ReactionType, SongDTO } from '../lib/types';
 import type { Burst, LivePin } from '../hooks/useRoom';
-import { Eyebrow, VinylArt } from './atoms';
+import { AlbumArt } from './atoms';
 
 // ---------- now-playing waveform with moment pins ----------
 export function WavePlayer({
@@ -126,17 +126,9 @@ export function ReactionBar({
   );
 }
 
-// ---------- F1-style live leaderboard ----------
-const ROW = 64;
-export function Leaderboard({
-  songs,
-  currentId,
-  hidden,
-}: {
-  songs: SongDTO[];
-  currentId: string | null;
-  hidden?: boolean;
-}) {
+// ---------- v2 playlist rail: queue + live standings merged, racing ----------
+const RROW = 72;
+export function PlaylistRail({ songs, currentId }: { songs: SongDTO[]; currentId: string | null }) {
   const ranked = useMemo(() => {
     const arr = [...songs];
     arr.sort((a, b) => {
@@ -149,7 +141,6 @@ export function Leaderboard({
     return arr;
   }, [songs, currentId]);
 
-  // movement flashes
   const prevPos = useRef<Record<string, number>>({});
   const moves: Record<string, number> = {};
   ranked.forEach((s, i) => {
@@ -162,98 +153,46 @@ export function Leaderboard({
     prevPos.current = next;
   });
 
-  const leader = ranked.find((s) => s.played || s.id === currentId);
   return (
-    <aside className={'lboard' + (hidden ? ' lboard-hidden' : '')}>
-      <div className="lboard-head">
-        <Eyebrow>LIVE STANDINGS</Eyebrow>
-        <span className="lboard-note mono">heat / min</span>
-      </div>
-      <div className="lboard-track" style={{ height: ranked.length * ROW }}>
-        {songs.map((s) => {
+    <div className="rail-track">
+      <div style={{ position: 'relative', height: ranked.length * RROW }}>
+        {songs.map((s, i) => {
           const pos = ranked.findIndex((r) => r.id === s.id);
           const active = s.played || s.id === currentId;
           const mv = moves[s.id] || 0;
-          const gap = leader && active && s.id !== leader.id ? leader.score - s.score : null;
+          const live = s.id === currentId;
           return (
             <div
               key={s.id}
               className={
-                'lrow' + (s.id === currentId ? ' lrow-live' : '') + (!active ? ' lrow-queued' : '')
+                'pcard glass' +
+                (live ? ' pcard-live' : '') +
+                (s.played ? ' pcard-played' : !active ? ' pcard-queued' : '')
               }
-              style={{ transform: `translateY(${pos * ROW}px)` }}
+              style={{ transform: `translateY(${pos * RROW}px)`, animationDelay: `${i * 0.04}s` }}
             >
-              <span className="lrow-pos mono">
+              <span className="pcard-rank mono">
                 {active ? String(pos + 1).padStart(2, '0') : '–'}
               </span>
-              <span className={'lrow-delta' + (mv > 0 ? ' up' : mv < 0 ? ' down' : '')}>
+              <span className={'pcard-delta' + (mv > 0 ? ' up' : mv < 0 ? ' down' : '')}>
                 {mv > 0 ? '▲' : mv < 0 ? '▼' : ''}
               </span>
-              <VinylArt hue={s.hue} size={34} />
-              <span className="lrow-meta">
+              <AlbumArt artworkUrl={s.artworkUrl} hue={s.hue} size={44} radius={8} />
+              <span className="pcard-meta">
                 <b>{s.title}</b>
-                <i className="mono">
-                  {s.id === currentId
-                    ? '● LIVE'
+                <span>
+                  {live
+                    ? '● LIVE NOW'
                     : active
-                      ? gap != null
-                        ? '-' + gap.toFixed(1)
-                        : 'LEADER'
-                      : 'queued'}
-                </i>
+                      ? s.artist
+                      : `queued · ${s.addedByName.toLowerCase()}`}
+                </span>
               </span>
-              <span className="lrow-score mono">{active ? s.score.toFixed(1) : ''}</span>
+              <span className="pcard-heat mono">{active ? s.score.toFixed(1) : ''}</span>
             </div>
           );
         })}
       </div>
-    </aside>
-  );
-}
-
-// ---------- horizontal filmstrip queue ----------
-export function QueueStrip({ songs, currentId }: { songs: SongDTO[]; currentId: string | null }) {
-  const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const onWheel = (e: WheelEvent) => {
-      if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
-        el.scrollLeft += e.deltaY;
-        e.preventDefault();
-      }
-    };
-    el.addEventListener('wheel', onWheel, { passive: false });
-    return () => el.removeEventListener('wheel', onWheel);
-  }, []);
-  const nextIdx = songs.findIndex((x) => !x.played && x.id !== currentId);
-  return (
-    <div className="qstrip" ref={ref}>
-      {songs.map((s, i) => {
-        const status =
-          s.id === currentId ? 'live' : s.played ? 'played' : i === nextIdx ? 'next' : 'queued';
-        return (
-          <div key={s.id} className={'qcard qcard-' + status}>
-            <VinylArt hue={s.hue} size={52} spinning={status === 'live'} />
-            <div className="qcard-meta">
-              <b>{s.title}</b>
-              <span>{s.artist}</span>
-              <span className="mono qcard-sub">
-                {fmtTime(s.durationSec)} · {s.addedByName.toLowerCase()}
-              </span>
-            </div>
-            <span className={'qcard-tag mono qtag-' + status}>
-              {status === 'live'
-                ? '● NOW'
-                : status === 'played'
-                  ? s.score.toFixed(1)
-                  : status === 'next'
-                    ? 'UP NEXT'
-                    : String(i + 1).padStart(2, '0')}
-            </span>
-          </div>
-        );
-      })}
     </div>
   );
 }

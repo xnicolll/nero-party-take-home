@@ -1,29 +1,39 @@
 // ============================================================
-// NERO PARTY — coronation (ported from nero-finale.jsx)
-// dim -> replay the peak -> crown Song + Moment + superlatives.
+// NERO PARTY — coronation (v2)
+// dim -> replay the peak -> crown. Real album art, less card framing, and a
+// "you might like" row matched from what the group liked (Audius genre/artist).
 // ============================================================
 import { useEffect, useMemo, useState } from 'react';
-import { REACTIONS, mulberry32, seedFromId } from '../lib/nero';
-import type { ReactionType, ResultsDTO } from '../lib/types';
-import { Btn, Eyebrow, HeatShape, RGlyph, StarField, VinylArt } from './atoms';
+import { REACTIONS, fmtTime, mulberry32, seedFromId } from '../lib/nero';
+import type { Rec, ReactionType, ResultsDTO } from '../lib/types';
+import { AlbumArt, Btn, Eyebrow, HeatShape, RGlyph, StarField } from './atoms';
 
 const STORM_TYPES: ReactionType[] = ['drop', 'groove', 'feels', 'wtf', 'chills'];
 
-export function Coronation({ results, onRestart }: { results: ResultsDTO; onRestart: () => void }) {
+export function Coronation({
+  results,
+  onRestart,
+  getRecs,
+}: {
+  results: ResultsDTO;
+  onRestart: () => void;
+  getRecs: () => Promise<Rec[]>;
+}) {
   const [stage, setStage] = useState<'dim' | 'replay' | 'crown'>('dim');
+  const [recs, setRecs] = useState<Rec[] | null>(null);
   const champ = results.songOfNight;
   const moment = results.momentOfNight;
 
   useEffect(() => {
     const t1 = setTimeout(() => setStage('replay'), 1400);
     const t2 = setTimeout(() => setStage('crown'), 4600);
+    getRecs().then(setRecs);
     return () => {
       clearTimeout(t1);
       clearTimeout(t2);
     };
-  }, []);
+  }, [getRecs]);
 
-  // storm of glyphs for the replay (dominant glyph + a little variety)
   const storm = useMemo(() => {
     if (!moment) return [];
     const rnd = mulberry32(seedFromId(moment.songId) + 99);
@@ -73,17 +83,17 @@ export function Coronation({ results, onRestart }: { results: ResultsDTO; onRest
   return (
     <div className="coro coro-crown">
       <StarField />
-      <div className="coro-cols">
+      <div className="coro-cols bare">
         {champ && (
           <div className="crown-card crown-song">
             <Eyebrow color="var(--accent)">SONG OF THE NIGHT</Eyebrow>
-            <VinylArt hue={champ.hue} size={170} spinning />
+            <AlbumArt artworkUrl={champ.artworkUrl} hue={champ.hue} size={188} radius={20} />
             <h2 className="crown-title">{champ.title}</h2>
             <p className="crown-artist">{champ.artist}</p>
             <div className="mono crown-stat">
               {champ.score.toFixed(1)} heat/min · queued by {champ.addedByName.toLowerCase()}
             </div>
-            <HeatShape buckets={champ.buckets} w={260} h={36} />
+            <HeatShape buckets={champ.buckets} w={240} h={34} />
           </div>
         )}
         {moment && (
@@ -100,6 +110,7 @@ export function Coronation({ results, onRestart }: { results: ResultsDTO; onRest
           </div>
         )}
       </div>
+
       <div className="superl-row">
         {results.superlatives.map((s) => (
           <div key={s.key} className="superl">
@@ -109,6 +120,33 @@ export function Coronation({ results, onRestart }: { results: ResultsDTO; onRest
           </div>
         ))}
       </div>
+
+      <div className="recs">
+        <Eyebrow>WHAT TO PLAY NEXT · matched to your night</Eyebrow>
+        {recs === null ? (
+          <span className="recs-loading">finding songs your room would love…</span>
+        ) : recs.length === 0 ? (
+          <span className="recs-loading">no matches this time</span>
+        ) : (
+          <div className="recs-row">
+            {recs.map((r) => (
+              <div key={r.id} className="rec-card">
+                <div className="rec-art">
+                  <AlbumArt artworkUrl={r.artworkUrl} hue={r.hue} size={150} radius={14} />
+                  <span className="rec-reason">{r.reason}</span>
+                </div>
+                <div className="rec-meta">
+                  <b>{r.title}</b>
+                  <span>
+                    {r.artist} · {fmtTime(r.durationSec)}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
       <div className="coro-actions">
         <Btn big onClick={onRestart}>
           Run it back

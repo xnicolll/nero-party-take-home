@@ -34,7 +34,7 @@ export function CreateParty({
       <button className="back-btn" onClick={onBack}>
         ← back
       </button>
-      <div className="create-card">
+      <div className="create-card rise">
         <Eyebrow>~/new_party · step 1 of 2</Eyebrow>
         <h2 className="create-title">Set the rules</h2>
 
