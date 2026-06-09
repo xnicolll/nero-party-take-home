@@ -7,6 +7,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { REACTIONS, fmtTime, mulberry32, seedFromId } from '../lib/nero';
 import type { Rec, ReactionType, ResultsDTO } from '../lib/types';
 import { AlbumArt, Btn, Eyebrow, HeatShape, RGlyph, StarField } from './atoms';
+import { SnippetPlayer, type SnippetTrack } from './SnippetPlayer';
 
 const STORM_TYPES: ReactionType[] = ['drop', 'groove', 'feels', 'wtf', 'chills'];
 
@@ -21,6 +22,7 @@ export function Coronation({
 }) {
   const [stage, setStage] = useState<'dim' | 'replay' | 'crown'>('dim');
   const [recs, setRecs] = useState<Rec[] | null>(null);
+  const [snippet, setSnippet] = useState<SnippetTrack | null>(null);
   const champ = results.songOfNight;
   const moment = results.momentOfNight;
 
@@ -99,8 +101,11 @@ export function Coronation({
         {moment && (
           <div className="crown-card crown-moment">
             <Eyebrow color={REACTIONS[moment.glyph].color}>MOMENT OF THE NIGHT</Eyebrow>
-            <div className="crown-moment-glyph">
-              <RGlyph type={moment.glyph} size={54} />
+            <div className="crown-art">
+              <AlbumArt artworkUrl={moment.artworkUrl} hue={moment.hue} size={188} radius={20} />
+              <span className="moment-badge">
+                <RGlyph type={moment.glyph} size={26} />
+              </span>
             </div>
             <h3 className="crown-mtitle">{moment.title}</h3>
             <p className="crown-artist">at {moment.ts}</p>
@@ -129,8 +134,21 @@ export function Coronation({
           <span className="recs-loading">no matches this time</span>
         ) : (
           <div className="recs-row">
-            {recs.map((r) => (
-              <div key={r.id} className="rec-card">
+            {recs.slice(0, 5).map((r) => (
+              <button
+                key={r.id}
+                className="rec-card"
+                onClick={() =>
+                  setSnippet({
+                    title: r.title,
+                    artist: r.artist,
+                    streamUrl: r.streamUrl,
+                    artworkUrl: r.artworkUrl,
+                    hue: r.hue,
+                    durationSec: r.durationSec,
+                  })
+                }
+              >
                 <div className="rec-art">
                   <AlbumArt artworkUrl={r.artworkUrl} hue={r.hue} size={150} radius={14} />
                   <span className="rec-reason">{r.reason}</span>
@@ -141,7 +159,7 @@ export function Coronation({
                     {r.artist} · {fmtTime(r.durationSec)}
                   </span>
                 </div>
-              </div>
+              </button>
             ))}
           </div>
         )}
@@ -149,9 +167,11 @@ export function Coronation({
 
       <div className="coro-actions">
         <Btn big onClick={onRestart}>
-          Run it back
+          Go back home
         </Btn>
       </div>
+
+      {snippet && <SnippetPlayer track={snippet} onClose={() => setSnippet(null)} />}
     </div>
   );
 }

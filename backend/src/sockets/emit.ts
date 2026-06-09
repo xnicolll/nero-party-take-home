@@ -113,6 +113,9 @@ export function toMomentDTO(m: MomentRuntime): MomentDTO {
     artist: m.song.artist,
     hue: m.song.hue,
     audiusId: m.song.audiusId,
+    artworkUrl: m.song.artworkUrl,
+    streamUrl: m.song.streamUrl,
+    durationSec: m.song.durationSec,
     frac: m.frac,
     ts: fmtTime(m.frac * m.song.durationSec),
     heat: m.heat,
@@ -170,5 +173,6 @@ export function toSnapshot(room: Room, participantId: string): Snapshot {
     leaderboard: toLeaderboard(room),
     finale: toFinaleState(room),
     results: room.phase === 'coronation' ? buildResultsDTO(room) : null,
+    awaitingMore: room.awaitingMore,
   };
 }

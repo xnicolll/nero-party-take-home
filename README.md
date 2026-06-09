@@ -53,6 +53,12 @@ npm run dev
 - Frontend: `http://localhost:5173`
 - Backend: `http://localhost:3000`
 
+To stop everything after testing (frees both ports):
+
+```bash
+npm run kill   # or: lsof -ti:3000,5173 | xargs kill -9
+```
+
 ### Try it (solo, ~2 minutes)
 
 1. Open `http://localhost:5173`, scroll the landing to read the six-step ritual, then hit

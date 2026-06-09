@@ -4,7 +4,7 @@
 // ============================================================
 import { useEffect, useRef, useState } from 'react';
 import { CYCLE_WORDS, REACTION_ORDER } from '../lib/nero';
-import { Btn, Eyebrow, HeatShape, PersonDot, RGlyph, StarField, VinylArt } from './atoms';
+import { Btn, Eyebrow, HeatShape, RGlyph, StarField } from './atoms';
 
 const STRIP_STEPS = [
   {
@@ -19,8 +19,8 @@ const STRIP_STEPS = [
   },
   {
     n: '/03_react',
-    t: 'Tap what you feel.',
-    d: 'Your tap sticks to that exact second. The drop. The bridge. That bit.',
+    t: 'Tap what emotion you feel.',
+    d: 'When you feel it. Your tap sticks to that exact second.',
   },
   {
     n: '/04_sync',
@@ -38,13 +38,6 @@ const STRIP_STEPS = [
     d: 'Songs race on a live board. Best moments battle 1v1. Then the crown.',
   },
 ];
-const DEMO_HUES = [28, 264, 330];
-const DEMO_PEOPLE = [
-  { name: 'You', color: '#E8743B' },
-  { name: 'Maya', color: '#C2703E' },
-  { name: 'Theo', color: '#5F8A4E' },
-];
-
 function CycleWord() {
   const [txt, setTxt] = useState(CYCLE_WORDS[0]);
   useEffect(() => {
@@ -87,14 +80,7 @@ function CycleWord() {
 }
 
 function StripDemo({ i }: { i: number }) {
-  if (i === 1)
-    return (
-      <>
-        {DEMO_HUES.map((h) => (
-          <VinylArt key={h} hue={h} size={22} />
-        ))}
-      </>
-    );
+  // cards 2 and 4 carry no icon (cleaner, less "AI")
   if (i === 2)
     return (
       <>
@@ -103,17 +89,10 @@ function StripDemo({ i }: { i: number }) {
         ))}
       </>
     );
-  if (i === 3)
-    return (
-      <>
-        {DEMO_PEOPLE.map((p) => (
-          <PersonDot key={p.name} person={p} lit size={22} />
-        ))}
-      </>
-    );
   if (i === 4) return <RGlyph type="chills" size={16} />;
   if (i === 5) return <HeatShape buckets={[1, 3, 2, 6, 9, 4, 2, 5, 11, 6, 3, 1]} w={90} h={22} />;
-  return <span className="orb" style={{ width: 16, height: 16 }} />;
+  if (i === 0) return <span className="orb" style={{ width: 16, height: 16 }} />;
+  return null;
 }
 
 function FilmStrip() {
@@ -234,6 +213,7 @@ export function Landing({ onBegin }: { onBegin: () => void }) {
     <div className="landing">
       <StarField />
       <ScrollSpine prog={prog} />
+      <div className="spine-mask" />
       <nav className="pillnav swoop" style={navStyle}>
         <span className="pillnav-brand">
           <span className="pillnav-dot" />

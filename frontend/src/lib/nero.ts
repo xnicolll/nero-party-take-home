@@ -31,7 +31,7 @@ export const REACTIONS: Record<ReactionType, ReactionDef> = {
 
 export const REACTION_ORDER: ReactionType[] = ['drop', 'groove', 'feels', 'wtf', 'chills'];
 
-export const LANES = ['Anything goes', 'Electronic', 'Indie / Alt', 'Hip-hop', 'Ambient'];
+export const LANES = ['Anything goes', 'Electronic', 'Indie / Alt', 'Hip-hop'];
 
 // Hero word cycle (design).
 export const CYCLE_WORDS = [

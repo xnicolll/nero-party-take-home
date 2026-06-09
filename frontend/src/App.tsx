@@ -39,12 +39,14 @@ function ThemeToggle() {
 
 export default function App() {
   const room = useRoom();
-  const { needsGesture, prime } = usePlayback(room.current);
+  // only feed audio while a song is actively playing (stops at intermission/finale)
+  const { needsGesture, prime } = usePlayback(
+    room.phase === 'party' && !room.awaitingMore ? room.current : null,
+  );
   const [uiPhase, setUiPhase] = useState<'landing' | 'create'>('landing');
   const [joinCode, setJoinCode] = useState<string | null>(parseJoinCode());
   const [creating, setCreating] = useState(false);
   const [showTut, setShowTut] = useState(false);
-  const [tutShown, setTutShown] = useState(false);
 
   // resume an existing party on refresh (rejoin) unless we're on a join link
   useEffect(() => {
@@ -52,20 +54,15 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // auto-open the tutorial once when the host's lobby first appears.
-  // Guests arriving via the invite link have already seen the ritual, so skip it.
-  useEffect(() => {
-    if (room.phase === 'lobby' && !tutShown && !joinCode) {
-      setShowTut(true);
-      setTutShown(true);
-    }
-  }, [room.phase, tutShown, joinCode]);
+  // The tutorial is taught by scrolling the landing; it's only ever opened
+  // on demand via the `?` button, never auto-popped.
 
   const goHome = useCallback(() => {
     room.actions.reset();
     window.history.replaceState(null, '', '/');
     setJoinCode(null);
     setUiPhase('landing');
+    window.scrollTo(0, 0);
   }, [room.actions]);
 
   const onCreate = useCallback(
@@ -130,9 +127,11 @@ export default function App() {
         chillsLeft={room.you?.chillsLeft ?? 0}
         youId={room.you?.participantId ?? ''}
         isHost={room.isHost}
+        awaitingMore={room.awaitingMore}
         onReact={room.actions.react}
         onSkip={room.actions.skip}
         onEnd={room.actions.end}
+        onFinish={room.actions.finish}
         onHelp={() => setShowTut(true)}
         search={room.actions.searchTracks}
         add={room.actions.addSong}

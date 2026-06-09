@@ -104,6 +104,7 @@ export interface Room {
 
   tick: NodeJS.Timeout | null;
   emptySince: number | null;
+  awaitingMore: boolean; // queue exhausted, host deciding to add more or finish
 }
 
 const byCode = new Map<string, Room>();

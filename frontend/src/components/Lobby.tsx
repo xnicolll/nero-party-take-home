@@ -4,8 +4,9 @@
 // ============================================================
 import { useEffect, useRef, useState } from 'react';
 import type { ParticipantDTO, PartyDTO, SongDTO, Track } from '../lib/types';
-import { Btn, Eyebrow, StarField, VinylArt } from './atoms';
+import { AlbumArt, Btn, Eyebrow, StarField } from './atoms';
 import { SongSearch } from './SongSearch';
+import { SnippetPlayer, type SnippetTrack } from './SnippetPlayer';
 import { fmtTime } from '../lib/nero';
 
 interface LobbyProps {
@@ -37,6 +38,7 @@ export function Lobby({
   const [copied, setCopied] = useState(false);
   const [showSongs, setShowSongs] = useState(false);
   const [lastJoined, setLastJoined] = useState<string | null>(null);
+  const [snippet, setSnippet] = useState<SnippetTrack | null>(null);
   const prevCount = useRef(participants.length);
 
   // nodes = everyone except yourself; you are the center orb
@@ -116,6 +118,7 @@ export function Lobby({
             <div className="lobby-node" style={{ borderColor: p.color, color: p.color }}>
               <span className="lobby-node-dot" style={{ background: p.color }} />
               {p.name}
+              {p.isHost && <span title="host"> ✦</span>}
             </div>
           </div>
         ))}
@@ -165,22 +168,38 @@ export function Lobby({
               queuedIds={new Set(songs.map((s) => s.audiusId))}
             />
             {songs.length > 0 && (
-              <div className="search-results" style={{ maxHeight: 120 }}>
+              <div className="search-results" style={{ maxHeight: 150 }}>
                 {songs.map((s) => (
-                  <div key={s.id} className="search-row" style={{ cursor: 'default' }}>
-                    <VinylArt hue={s.hue} size={28} />
+                  <button
+                    key={s.id}
+                    className="search-row qrow"
+                    onClick={() =>
+                      setSnippet({
+                        title: s.title,
+                        artist: s.artist,
+                        streamUrl: s.streamUrl,
+                        artworkUrl: s.artworkUrl,
+                        hue: s.hue,
+                        durationSec: s.durationSec,
+                      })
+                    }
+                  >
+                    <AlbumArt artworkUrl={s.artworkUrl} hue={s.hue} size={30} radius={6} />
                     <div className="search-row-meta">
                       <b>{s.title}</b>
                       <span>
                         {s.artist} · {fmtTime(s.durationSec)} · {s.addedByName.toLowerCase()}
                       </span>
                     </div>
-                  </div>
+                    <span className="search-row-add mono">▶ preview</span>
+                  </button>
                 ))}
               </div>
             )}
             <div className="tut-foot">
-              <span className="lobby-wait mono">friends can add too, via the link</span>
+              <span className="lobby-wait mono">
+                tap a song to preview · friends can add via the link
+              </span>
               <button className="tut-next" onClick={() => setShowSongs(false)}>
                 done →
               </button>
@@ -188,6 +207,8 @@ export function Lobby({
           </div>
         </div>
       )}
+
+      {snippet && <SnippetPlayer track={snippet} onClose={() => setSnippet(null)} />}
     </div>
   );
 }

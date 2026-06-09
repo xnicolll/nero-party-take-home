@@ -44,6 +44,7 @@ interface RoomState {
   results: ResultsDTO | null;
   pins: LivePin[]; // live pins for the current song
   bursts: Burst[];
+  awaitingMore: boolean; // queue exhausted, host deciding
 }
 
 const EMPTY: RoomState = {
@@ -59,6 +60,7 @@ const EMPTY: RoomState = {
   results: null,
   pins: [],
   bursts: [],
+  awaitingMore: false,
 };
 
 type Action =
@@ -73,6 +75,7 @@ type Action =
   | { type: 'leaderboard'; order: LeaderRow[] }
   | { type: 'finale'; finale: FinaleState }
   | { type: 'results'; results: ResultsDTO }
+  | { type: 'queueExhausted' }
   | { type: 'localChills' }
   | { type: 'reset' };
 
@@ -97,6 +100,7 @@ function reducer(state: RoomState, action: Action): RoomState {
         results: s.results,
         pins: (s.current?.song.pins ?? []).map((p) => ({ ...p, name: '', t: 0 })),
         bursts: [],
+        awaitingMore: s.awaitingMore,
       };
     }
     case 'participantJoined': {
@@ -116,7 +120,9 @@ function reducer(state: RoomState, action: Action): RoomState {
     case 'queueUpdated':
       return { ...state, songs: action.songs };
     case 'phaseChanged':
-      return { ...state, phase: action.phase };
+      return { ...state, phase: action.phase, awaitingMore: false };
+    case 'queueExhausted':
+      return { ...state, awaitingMore: true };
     case 'songChanged': {
       // replace the current song entry with its fresh (reset) version
       const songs = state.songs.map((s) =>
@@ -128,6 +134,7 @@ function reducer(state: RoomState, action: Action): RoomState {
         songs,
         pins: action.current.song.pins.map((p) => ({ ...p, name: '', t: 0 })),
         bursts: [],
+        awaitingMore: false,
       };
     }
     case 'reactionAdded': {
@@ -256,6 +263,7 @@ export function useRoom() {
     );
     socket.on('finaleState', (f: FinaleState) => dispatch({ type: 'finale', finale: f }));
     socket.on('results', (r: ResultsDTO) => dispatch({ type: 'results', results: r }));
+    socket.on('queueExhausted', () => dispatch({ type: 'queueExhausted' }));
     socket.on('tick', (d: { positionMs: number; serverTime: number }) =>
       setAnchor(d.serverTime, d.positionMs, anchor.current.effDur),
     );
@@ -273,6 +281,7 @@ export function useRoom() {
       socket.off('leaderboardUpdate');
       socket.off('finaleState');
       socket.off('results');
+      socket.off('queueExhausted');
       socket.off('tick');
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -315,6 +324,7 @@ export function useRoom() {
   const createParty = useCallback(
     async (cfg: {
       name: string;
+      hostName: string;
       lane: string;
       maxSongs: number;
       chillsBudget: number;
@@ -374,6 +384,10 @@ export function useRoom() {
   );
   const skip = useCallback(() => socket.emit('hostSkip', { hostToken: hostTokenRef.current }), []);
   const end = useCallback(() => socket.emit('hostEnd', { hostToken: hostTokenRef.current }), []);
+  const finish = useCallback(
+    () => socket.emit('finishParty', { hostToken: hostTokenRef.current }),
+    [],
+  );
   const vote = useCallback((side: 0 | 1) => socket.emit('castVote', { side }), []);
   const getRecs = useCallback(async () => {
     const r = await emitAck<any>('getRecs', {});
@@ -399,6 +413,7 @@ export function useRoom() {
       start,
       skip,
       end,
+      finish,
       vote,
       getRecs,
       reset,

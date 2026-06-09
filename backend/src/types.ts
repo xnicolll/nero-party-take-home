@@ -92,6 +92,9 @@ export interface MomentDTO {
   artist: string;
   hue: number;
   audiusId: string;
+  artworkUrl: string | null;
+  streamUrl: string;
+  durationSec: number;
   frac: number;
   ts: string; // formatted timestamp
   heat: number;
@@ -131,6 +134,7 @@ export interface Snapshot {
   leaderboard: LeaderRow[];
   finale: FinaleState | null;
   results: ResultsDTO | null;
+  awaitingMore: boolean;
 }
 
 export interface ReactionAdded {

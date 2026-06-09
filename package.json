@@ -8,7 +8,8 @@
     "dev:frontend": "cd frontend && npm run dev",
     "install": "cd backend && npm install && cd ../frontend && npm install",
     "cleanup": "prettier --write .",
-    "cleanup:check": "prettier --check ."
+    "cleanup:check": "prettier --check .",
+    "kill": "lsof -ti:3000,5173 | xargs kill -9 2>/dev/null || true"
   },
   "devDependencies": {
     "concurrently": "^8.2.2",

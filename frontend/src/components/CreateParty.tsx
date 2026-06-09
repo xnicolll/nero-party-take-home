@@ -1,5 +1,6 @@
 // ============================================================
-// NERO PARTY — create party (ported from nero-lobby.jsx) + song-length toggle
+// NERO PARTY — create party (content on the surface, no hero card)
+// Soundwave selectors, host name, less-"AI" pills.
 // ============================================================
 import { useState } from 'react';
 import { LANES } from '../lib/nero';
@@ -8,10 +9,49 @@ import { Btn, Eyebrow } from './atoms';
 
 export interface CreateConfig {
   name: string;
+  hostName: string;
   lane: string;
   maxSongs: number;
   chillsBudget: number;
   songLengthMode: SongLengthMode;
+}
+
+// soundwave-style stepped selector
+function WaveSelect({
+  min,
+  max,
+  value,
+  onChange,
+}: {
+  min: number;
+  max: number;
+  value: number;
+  onChange: (v: number) => void;
+}) {
+  const n = max - min + 1;
+  return (
+    <div
+      className="wavesel"
+      role="slider"
+      aria-valuemin={min}
+      aria-valuemax={max}
+      aria-valuenow={value}
+    >
+      {Array.from({ length: n }, (_, k) => {
+        const v = min + k;
+        const h = 38 + 56 * Math.abs(Math.sin((k + 1) * 1.27)); // organic wave heights
+        return (
+          <div
+            key={v}
+            className={'wavesel-bar' + (v <= value ? ' on' : '')}
+            style={{ height: h + '%' }}
+            onClick={() => onChange(v)}
+            title={String(v)}
+          />
+        );
+      })}
+    </div>
+  );
 }
 
 export function CreateParty({
@@ -23,7 +63,8 @@ export function CreateParty({
   onBack: () => void;
   busy?: boolean;
 }) {
-  const [name, setName] = useState('Tuesday After Hours');
+  const [name, setName] = useState('');
+  const [hostName, setHostName] = useState('');
   const [lane, setLane] = useState('Anything goes');
   const [maxSongs, setMaxSongs] = useState(5);
   const [chills, setChills] = useState(3);
@@ -38,15 +79,28 @@ export function CreateParty({
         <Eyebrow>~/new_party · step 1 of 2</Eyebrow>
         <h2 className="create-title">Set the rules</h2>
 
-        <label className="fld">
-          <span className="fld-label">party name</span>
-          <input
-            className="fld-input"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            maxLength={36}
-          />
-        </label>
+        <div className="fld-pair">
+          <label className="fld">
+            <span className="fld-label">party name</span>
+            <input
+              className="fld-input"
+              value={name}
+              placeholder="your session name here…"
+              onChange={(e) => setName(e.target.value)}
+              maxLength={36}
+            />
+          </label>
+          <label className="fld">
+            <span className="fld-label">your name (host)</span>
+            <input
+              className="fld-input"
+              value={hostName}
+              placeholder="who's hosting?"
+              onChange={(e) => setHostName(e.target.value)}
+              maxLength={24}
+            />
+          </label>
+        </div>
 
         <div className="fld">
           <span className="fld-label">
@@ -86,33 +140,19 @@ export function CreateParty({
         </div>
 
         <div className="fld-pair">
-          <label className="fld">
+          <div className="fld">
             <span className="fld-label">
               song limit <b className="fld-val">{maxSongs}</b>
             </span>
-            <input
-              type="range"
-              min={3}
-              max={12}
-              value={maxSongs}
-              onChange={(e) => setMaxSongs(+e.target.value)}
-              className="fld-range"
-            />
-          </label>
-          <label className="fld">
+            <WaveSelect min={3} max={12} value={maxSongs} onChange={setMaxSongs} />
+          </div>
+          <div className="fld">
             <span className="fld-label">
               chills tokens <b className="fld-val">{chills} each</b>
             </span>
-            <input
-              type="range"
-              min={1}
-              max={5}
-              value={chills}
-              onChange={(e) => setChills(+e.target.value)}
-              className="fld-range"
-            />
+            <WaveSelect min={1} max={5} value={chills} onChange={setChills} />
             <i className="fld-note">rare on purpose. spending one means something.</i>
-          </label>
+          </div>
         </div>
 
         <div className="create-actions">
@@ -124,7 +164,8 @@ export function CreateParty({
             disabled={busy}
             onClick={() =>
               onOpen({
-                name: name || 'Untitled Party',
+                name: name.trim() || 'Untitled Party',
+                hostName: hostName.trim() || 'You',
                 lane,
                 maxSongs,
                 chillsBudget: chills,

@@ -5,7 +5,7 @@
 import { useEffect, useState } from 'react';
 import { REACTIONS } from '../lib/nero';
 import type { FinaleState, MomentDTO } from '../lib/types';
-import { Eyebrow, HeatShape, RGlyph, StarField, VinylArt } from './atoms';
+import { AlbumArt, Eyebrow, HeatShape, RGlyph, StarField } from './atoms';
 
 function MomentCard({
   moment,
@@ -36,7 +36,7 @@ function MomentCard({
       disabled={!onPick}
     >
       <div className="mcard-top">
-        <VinylArt hue={moment.hue} size={72} />
+        <AlbumArt artworkUrl={moment.artworkUrl} hue={moment.hue} size={72} radius={12} />
         <RGlyph type={moment.glyph} size={26} />
       </div>
       <h3 className="mcard-title">{moment.title}</h3>

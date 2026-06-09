@@ -133,6 +133,7 @@ export function createRoom(
     finale: null,
     tick: null,
     emptySince: null,
+    awaitingMore: false,
   };
   registerRoom(room);
   return room;
@@ -333,7 +334,7 @@ function tick(room: Room): void {
     emitRoom(room, 'leaderboardUpdate', { order: toLeaderboard(room) });
   }
 
-  // song end -> next or finale
+  // song end -> next, or pause for the host to add more / finish
   if (room.positionMs >= room.effectiveDurationMs) {
     song.played = true;
     prisma.queuedSong.update({ where: { id: song.id }, data: { played: true } }).catch(() => {});
@@ -341,18 +342,52 @@ function tick(room: Room): void {
       room.idx += 1;
       startSong(room);
     } else {
-      enterFinale(room);
+      pauseForMore(room);
     }
   }
 }
 
-// Seed the queue from trending if no human added songs. Keep durations sane
-// (1–7 min) so `full` mode isn't a 60-minute track.
-async function seedQueue(room: Room): Promise<void> {
+// Queue exhausted: stop the clock and ask the host to add more or wrap up.
+function pauseForMore(room: Room): void {
+  if (room.tick) {
+    clearInterval(room.tick);
+    room.tick = null;
+  }
+  room.awaitingMore = true;
+  emitRoom(room, 'queueExhausted', { canAdd: room.songs.length < room.maxSongs });
+}
+
+// Host chose to keep going after adding songs (or a song arrived mid-pause).
+function resumeFromMore(room: Room): void {
+  if (!room.awaitingMore) return;
+  const nextIdx = room.songs.findIndex((s) => !s.played);
+  if (nextIdx === -1) return; // nothing new to play
+  room.awaitingMore = false;
+  room.idx = nextIdx;
+  startSong(room);
+  room.tick = setInterval(() => tick(room), TICK_MS);
+}
+
+// Host chose to finish -> crown.
+export function finishParty(room: Room): void {
+  room.awaitingMore = false;
+  enterFinale(room);
+}
+
+function emitQueue(room: Room): void {
+  emitRoom(room, 'queueUpdated', { songs: room.songs.map((s) => toSongDTO(room, s)) });
+}
+
+// Seed the queue from trending by the party's genre. Keep durations sane
+// (1–7 min) so `full` mode isn't a 60-minute track. Emits the queue so clients
+// see it. Used to auto-load songs in the lobby and to top up at start.
+export async function seedQueue(room: Room, count = room.maxSongs): Promise<void> {
+  const slots = Math.max(0, Math.min(count, room.maxSongs - room.songs.length));
+  if (slots === 0) return;
   const sane = (t: Track) => t.durationSec >= 60 && t.durationSec <= 420;
+  const have = new Set(room.songs.map((s) => s.audiusId));
   let tracks: Track[] = (await trending(laneToGenre(room.lane), 18)).filter(sane);
-  if (tracks.length < room.maxSongs) {
-    // top up with genre-less trending if a narrow lane was thin
+  if (tracks.length < slots) {
     const more = (await trending(undefined, 18)).filter(sane);
     for (const t of more) if (!tracks.find((x) => x.id === t.id)) tracks.push(t);
   }
@@ -362,9 +397,15 @@ async function seedQueue(room: Room): Promise<void> {
   }
   const adder = botIds(room)[0] ?? [...room.participants.values()][0]?.id;
   if (!adder) return;
-  for (const t of tracks.slice(0, room.maxSongs)) {
+  let added = 0;
+  for (const t of tracks) {
+    if (added >= slots) break;
+    if (have.has(t.id)) continue;
+    have.add(t.id);
     await addSongToRoom(room, t, adder, /*silent*/ true);
+    added++;
   }
+  emitQueue(room);
 }
 
 export async function addSongToRoom(
@@ -391,7 +432,9 @@ export async function addSongToRoom(
     },
   });
   room.songs.push(makeRuntimeSong(row));
-  if (!silent) emitRoom(room, 'queueUpdated', { songs: room.songs.map((s) => toSongDTO(room, s)) });
+  if (!silent) emitQueue(room);
+  // a song arriving during the intermission resumes playback
+  if (!silent && room.awaitingMore) resumeFromMore(room);
   return { ok: true };
 }
 
@@ -407,6 +450,7 @@ export async function startParty(room: Room): Promise<{ ok: boolean; reason?: st
   room.idx = 0;
   await prisma.party.update({ where: { id: room.partyId }, data: { phase: 'party' } });
   emitRoom(room, 'phaseChanged', { phase: 'party' });
+  emitQueue(room); // make sure clients have the authoritative queue
   startSong(room);
   room.tick = setInterval(() => tick(room), TICK_MS);
   return { ok: true };

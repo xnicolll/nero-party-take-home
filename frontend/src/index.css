@@ -2298,3 +2298,276 @@ html[data-theme='dark'] .ambient-img {
     transform: translateY(18px) scale(0.985);
   }
 }
+
+/* ============================================================
+   v3 — contrast + readability, intermission, host marker,
+   calmer buttons, de-carded surfaces, spine wall, wave selector
+   ============================================================ */
+
+/* glass + reaction chips need to read on the ambient surface */
+.glass {
+  background: color-mix(in oklab, var(--panel) 82%, transparent);
+  border-color: color-mix(in oklab, var(--ink) 12%, transparent);
+}
+.rchip {
+  background: color-mix(in oklab, var(--panel) 90%, transparent);
+  backdrop-filter: blur(12px);
+  border-color: color-mix(in oklab, var(--ink) 12%, transparent);
+}
+.pcard {
+  background: color-mix(in oklab, var(--panel) 80%, transparent);
+}
+
+/* buttons: change colour only — no lift, no shadow (per request) */
+.nbtn:hover:not(:disabled),
+.nbtn:active:not(:disabled) {
+  transform: none;
+  box-shadow: none;
+}
+.rchip:hover:not(:disabled),
+.rchip:active:not(:disabled) {
+  transform: none;
+  box-shadow: var(--shadow);
+}
+.mcard:not(:disabled):hover,
+.rec-card:hover,
+.r2-iconbtn:hover,
+.lane-chip:hover {
+  transform: none;
+}
+.search-row:hover:not(:disabled) {
+  transform: none;
+}
+
+/* host marker */
+.pdot-wrap {
+  position: relative;
+  display: inline-flex;
+  flex: 0 0 auto;
+}
+.pdot-host {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  font-size: 9px;
+  line-height: 1;
+  color: var(--accent);
+  text-shadow: 0 0 3px var(--bg);
+}
+
+/* queue-exhausted intermission card */
+.intermission {
+  width: min(440px, 92vw);
+  border-radius: 22px;
+  padding: 34px 38px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: flex-start;
+  box-shadow: 0 30px 80px rgba(20, 16, 12, 0.4);
+  animation: riseIn 0.5s var(--ease-damp);
+}
+.intermission-title {
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 24px;
+  letter-spacing: -0.025em;
+}
+.intermission-sub {
+  color: var(--ink-dim);
+  font-size: 13.5px;
+}
+.intermission-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 12px;
+  align-self: stretch;
+  justify-content: flex-end;
+}
+
+/* big now-playing art */
+.stage-art {
+  border-radius: 22px;
+  box-shadow: 0 26px 70px rgba(20, 16, 12, 0.42);
+}
+.stage-art .albumart,
+.stage-art .vinyl {
+  box-shadow: none;
+}
+
+/* ---------- de-card: transparent surfaces, just borders ---------- */
+.strip-card {
+  background: transparent;
+  box-shadow: none;
+  border-color: color-mix(in oklab, var(--ink) 12%, transparent);
+}
+.create-card {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  padding: 0;
+  width: min(560px, 92vw);
+}
+.mcard {
+  background: transparent;
+  box-shadow: none;
+}
+.mcard-winner {
+  box-shadow: 0 0 0 2px color-mix(in oklab, var(--accent) 35%, transparent);
+}
+.superl {
+  background: transparent;
+  box-shadow: none;
+  border-color: color-mix(in oklab, var(--ink) 12%, transparent);
+}
+.stat-chip {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+.hero-stats.bare .stat-chip + .stat-chip {
+  border-left: none;
+}
+.hero-stats.bare {
+  gap: 28px;
+  border: none;
+  padding: 14px 0;
+}
+
+/* less-AI option pills (create) */
+.lane-chip {
+  border-radius: 8px;
+  background: transparent;
+  border-color: color-mix(in oklab, var(--ink) 14%, transparent);
+}
+.lane-on {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+.fld-input {
+  background: transparent;
+}
+
+/* ---------- spine acts as a wall: cards vanish behind it ---------- */
+.spine-mask {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 46px;
+  height: 100vh;
+  z-index: 39;
+  pointer-events: none;
+  background: linear-gradient(
+    to right,
+    var(--bg) 0,
+    var(--bg) 60%,
+    color-mix(in oklab, var(--bg) 0%, transparent) 100%
+  );
+}
+.scroll-spine {
+  z-index: 41;
+}
+/* spine + filmstrip track exactly with scroll — no lagging transitions */
+.spine-fill,
+.spine-node {
+  transition: none;
+}
+.strip-rule span {
+  transition: none;
+}
+
+/* ---------- soundwave selector ---------- */
+.wavesel {
+  display: flex;
+  gap: 4px;
+  align-items: flex-end;
+  height: 46px;
+}
+.wavesel-bar {
+  flex: 1;
+  min-width: 0;
+  border-radius: 3px 3px 2px 2px;
+  background: color-mix(in oklab, var(--ink) 14%, transparent);
+  transition:
+    background 0.15s,
+    opacity 0.15s;
+  cursor: pointer;
+}
+.wavesel-bar.on {
+  background: var(--accent);
+}
+.wavesel-bar:hover {
+  background: color-mix(in oklab, var(--accent) 55%, transparent);
+}
+
+/* snippet preview modal */
+.snippet {
+  width: min(360px, 92vw);
+  border-radius: 22px;
+  padding: 26px 28px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  text-align: center;
+  box-shadow: 0 30px 80px rgba(20, 16, 12, 0.4);
+  animation: riseIn 0.45s var(--ease-damp);
+}
+.snippet-title {
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 20px;
+  letter-spacing: -0.02em;
+}
+.snippet-bar {
+  width: 100%;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--line);
+  overflow: hidden;
+}
+.snippet-bar span {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  width: 0;
+  animation: snippetFill 12s linear forwards;
+}
+@keyframes snippetFill {
+  to {
+    width: 100%;
+  }
+}
+
+/* clickable lobby queue rows */
+.qrow {
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+.qrow:hover {
+  border-color: color-mix(in oklab, var(--accent) 45%, transparent);
+  background: color-mix(in oklab, var(--accent) 6%, transparent);
+}
+
+/* symmetric moment crown (album art + reaction badge) */
+.crown-art {
+  position: relative;
+}
+.moment-badge {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in oklab, var(--panel) 88%, transparent);
+  backdrop-filter: blur(8px);
+  box-shadow: var(--shadow);
+}
+.rec-card {
+  cursor: pointer;
+}

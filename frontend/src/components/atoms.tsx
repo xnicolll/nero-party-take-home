@@ -120,27 +120,35 @@ export function Btn({
 export function PersonDot({
   person,
   lit,
+  host,
   size = 30,
 }: {
   person: { name: string; color: string };
   lit?: boolean;
+  host?: boolean;
   size?: number;
 }) {
   return (
     <span
-      className="pdot"
-      title={person.name}
-      style={{
-        width: size,
-        height: size,
-        fontSize: size * 0.38,
-        background: lit ? person.color : 'transparent',
-        color: lit ? '#fdfbf7' : person.color,
-        borderColor: person.color,
-        boxShadow: lit ? `0 0 ${size * 0.6}px ${person.color}` : 'none',
-      }}
+      className="pdot-wrap"
+      style={{ width: size, height: size }}
+      title={person.name + (host ? ' · host' : '')}
     >
-      {person.name[0]?.toUpperCase()}
+      <span
+        className="pdot"
+        style={{
+          width: size,
+          height: size,
+          fontSize: size * 0.38,
+          background: lit ? person.color : 'transparent',
+          color: lit ? '#fdfbf7' : person.color,
+          borderColor: person.color,
+          boxShadow: lit ? `0 0 ${size * 0.6}px ${person.color}` : 'none',
+        }}
+      >
+        {person.name[0]?.toUpperCase()}
+      </span>
+      {host && <span className="pdot-host">✦</span>}
     </span>
   );
 }

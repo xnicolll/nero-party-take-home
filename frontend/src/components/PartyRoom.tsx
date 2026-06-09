@@ -14,7 +14,7 @@ import type {
   Track,
 } from '../lib/types';
 import type { Burst, LivePin } from '../hooks/useRoom';
-import { AlbumArt, AmbientBackground, Eyebrow, PersonDot } from './atoms';
+import { AlbumArt, AmbientBackground, Btn, Eyebrow, PersonDot } from './atoms';
 import { PlaylistRail, ReactionBar, WavePlayer } from './partyWidgets';
 import { SongSearch } from './SongSearch';
 
@@ -29,9 +29,11 @@ interface PartyRoomProps {
   chillsLeft: number;
   youId: string;
   isHost: boolean;
+  awaitingMore: boolean;
   onReact: (t: ReactionType) => void;
   onSkip: () => void;
   onEnd: () => void;
+  onFinish: () => void;
   onHelp: () => void;
   search: (q: string) => Promise<Track[]>;
   add: (t: Track) => Promise<{ ok: boolean; reason?: string }>;
@@ -48,9 +50,11 @@ export function PartyRoom({
   chillsLeft,
   youId,
   isHost,
+  awaitingMore,
   onReact,
   onSkip,
   onEnd,
+  onFinish,
   onHelp,
   search,
   add,
@@ -63,6 +67,7 @@ export function PartyRoom({
     pins.filter((p) => p.t && now - p.t < 1800).map((p) => p.participantId),
   );
   const windowSec = current.effectiveDurationMs / 1000;
+  const queueFull = songs.length >= party.maxSongs;
 
   return (
     <div className="room2">
@@ -91,6 +96,7 @@ export function PartyRoom({
                 key={p.id}
                 person={p}
                 lit={p.id === youId || litRecent.has(p.id)}
+                host={p.isHost}
                 size={26}
               />
             ))}
@@ -124,7 +130,7 @@ export function PartyRoom({
               <SongSearch
                 search={search}
                 add={add}
-                full={songs.length >= party.maxSongs}
+                full={queueFull}
                 queuedIds={new Set(songs.map((s) => s.audiusId))}
               />
             </div>
@@ -135,10 +141,18 @@ export function PartyRoom({
 
         <main className="stage">
           <div className="stage-np">
-            <AlbumArt artworkUrl={liveSong.artworkUrl} hue={liveSong.hue} size={196} radius={22} />
+            <div className="stage-art">
+              <AlbumArt
+                artworkUrl={liveSong.artworkUrl}
+                hue={liveSong.hue}
+                size={196}
+                radius={22}
+              />
+            </div>
             <div>
               <Eyebrow color={adder?.color}>
                 QUEUED BY {(adder?.name ?? liveSong.addedByName).toUpperCase()}
+                {adder?.isHost ? ' ✦' : ''}
               </Eyebrow>
               <h2 className="stage-title">{liveSong.title}</h2>
               <p className="stage-artist">{liveSong.artist}</p>
@@ -164,6 +178,29 @@ export function PartyRoom({
           </p>
         </main>
       </div>
+
+      {/* queue-exhausted intermission */}
+      {awaitingMore && !showAdd && (
+        <div className="audio-gate">
+          <div className="intermission glass">
+            <Eyebrow>~/intermission</Eyebrow>
+            <h3 className="intermission-title">That's the whole queue.</h3>
+            {isHost ? (
+              <>
+                <p className="intermission-sub">Want to listen to more, or crown the winner?</p>
+                <div className="intermission-actions">
+                  <Btn ghost disabled={queueFull} onClick={() => setShowAdd(true)}>
+                    {queueFull ? 'Queue full' : '＋ Add songs'}
+                  </Btn>
+                  <Btn onClick={onFinish}>Crown the winner →</Btn>
+                </div>
+              </>
+            ) : (
+              <p className="intermission-sub">the host is deciding what's next…</p>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

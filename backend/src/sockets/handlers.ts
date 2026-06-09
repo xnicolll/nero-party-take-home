@@ -13,9 +13,11 @@ import {
   armBotTimers,
   castVote,
   createRoom,
+  finishParty,
   hostEnd,
   hostSkip,
   humanReact,
+  seedQueue,
   startParty,
 } from '../room/engine.js';
 import { toSnapshot } from './emit.js';
@@ -98,6 +100,8 @@ export function registerSocketHandlers(io: Server): void {
           hostToken: party.hostToken,
           snapshot: toSnapshot(room, host.id),
         });
+        // auto-load a few songs by genre so the lobby starts with music
+        void seedQueue(room, 3);
       } catch (e) {
         ack?.({ ok: false, reason: 'Could not create party' });
       }
@@ -222,13 +226,19 @@ export function registerSocketHandlers(io: Server): void {
       if (!room || payload?.hostToken !== room.hostToken) return;
       hostEnd(room);
     });
+    // host chose "finish" at the queue-exhausted intermission
+    socket.on('finishParty', (payload: any) => {
+      const room = roomFromSocket(socket);
+      if (!room || payload?.hostToken !== room.hostToken) return;
+      finishParty(room);
+    });
 
     // ---- recommendations (coronation) ----
     socket.on('getRecs', async (_payload: any, ack?: (r: any) => void) => {
       const room = roomFromSocket(socket);
       if (!room) return ack?.({ recs: [] });
       try {
-        const recs = await buildRecs(room, 6);
+        const recs = await buildRecs(room, 5);
         ack?.({ recs });
       } catch {
         ack?.({ recs: [] });

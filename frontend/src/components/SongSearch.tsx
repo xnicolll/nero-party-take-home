@@ -4,7 +4,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { fmtTime } from '../lib/nero';
 import type { Track } from '../lib/types';
-import { VinylArt } from './atoms';
+import { AlbumArt } from './atoms';
 
 export function SongSearch({
   search,
@@ -72,7 +72,7 @@ export function SongSearch({
               disabled={!!full || isQueued || adding === t.id}
               onClick={() => onAdd(t)}
             >
-              <VinylArt hue={t.hue} size={34} />
+              <AlbumArt artworkUrl={t.artworkUrl} hue={t.hue} size={34} radius={6} />
               <div className="search-row-meta">
                 <b>{t.title}</b>
                 <span>
