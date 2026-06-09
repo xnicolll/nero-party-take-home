@@ -1,0 +1,10 @@
+node_modules/
+dist/
+build/
+*.db
+*.db-journal
+package-lock.json
+backend/prisma/migrations/
+
+# Provided take-home brief — keep as supplied
+PROMPT.md

@@ -3,3 +3,10 @@ dist/
 .env
 *.db
 *.db-journal
+
+# Claude / AI assistant files
+.claude/
+CLAUDE.md
+CLAUDE.local.md
+.claude.json
+.mcp.json

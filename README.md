@@ -27,8 +27,16 @@ npm run dev
 ```
 
 This will start:
+
 - Backend on `http://localhost:3000`
 - Frontend on `http://localhost:5173`
+
+## Formatting
+
+```bash
+# Format the whole codebase with Prettier
+npm run cleanup
+```
 
 ## Project Structure
 
