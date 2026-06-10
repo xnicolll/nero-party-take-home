@@ -23,7 +23,7 @@ export function buildSchedule(
   const rnd = mulberry32(seedDur * 131 + seedOffset);
   const evts: BotScheduleEvent[] = [];
   botIds.forEach((fid) => {
-    const count = 2 + Math.floor(rnd() * 3); // 2-4 reactions
+    const count = 1 + Math.floor(rnd() * 2); // 1-2 reactions, so humans drive the result
     for (let k = 0; k < count; k++) {
       let t: number;
       let type: ReactionType;

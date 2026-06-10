@@ -170,10 +170,15 @@ export default function App() {
   }
 
   const inParty = room.joined && room.phase !== 'lobby';
+  // changes only when the actual screen changes, so the fade plays on navigation
+  const screenKey =
+    joinCode && !room.joined ? 'join' : !room.joined ? uiPhase : (room.phase ?? 'loading');
 
   return (
     <>
-      {screen}
+      <div className="screen" key={screenKey}>
+        {screen}
+      </div>
       {showTut && <Tutorial onClose={() => setShowTut(false)} />}
       <Modal open={confirmLeave} onClose={() => setConfirmLeave(false)}>
         <div className="confirm-card glass">

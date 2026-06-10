@@ -20,7 +20,6 @@ import {
   hostSkip,
   humanReact,
   removeSong,
-  seedQueue,
   startParty,
 } from '../room/engine.js';
 import { toSnapshot } from './emit.js';
@@ -103,8 +102,6 @@ export function registerSocketHandlers(io: Server): void {
           hostToken: party.hostToken,
           snapshot: toSnapshot(room, host.id),
         });
-        // auto-load a few songs by genre so the lobby starts with music
-        void seedQueue(room, 3);
       } catch (e) {
         ack?.({ ok: false, reason: 'Could not create party' });
       }

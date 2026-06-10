@@ -42,6 +42,15 @@ export function Lobby({
   const [lastJoined, setLastJoined] = useState<string | null>(null);
   const [snippet, setSnippet] = useState<SnippetTrack | null>(null);
   const prevCount = useRef(participants.length);
+  const promptedRef = useRef(false);
+
+  // prompt the host to add songs the moment they land in an empty lobby
+  useEffect(() => {
+    if (isHost && songs.length === 0 && !promptedRef.current) {
+      promptedRef.current = true;
+      setShowSongs(true);
+    }
+  }, [isHost, songs.length]);
 
   // nodes = everyone except yourself; you are the center orb
   const others = participants.filter((p) => p.id !== youId);
@@ -133,12 +142,17 @@ export function Lobby({
           <span className="invite-copy">{copied ? 'COPIED ✓' : 'COPY LINK'}</span>
         </button>
 
-        <button className="pillnav-link mono" onClick={() => setShowSongs(true)}>
+        <button
+          className={'pillnav-link mono lobby-add' + (songs.length === 0 ? ' lobby-add-empty' : '')}
+          onClick={() => setShowSongs(true)}
+        >
           ＋ queue songs · {songs.length}/{party.maxSongs}
         </button>
 
         <div className="lobby-feed">
-          {participants.length <= 1 ? (
+          {songs.length === 0 ? (
+            <span className="lobby-wait">the queue is empty - add songs to play</span>
+          ) : participants.length <= 1 ? (
             <span className="lobby-wait">waiting for friends…</span>
           ) : lastJoined ? (
             <span key={lastJoined + participants.length} className="lobby-joinmsg">
@@ -150,8 +164,12 @@ export function Lobby({
         </div>
 
         {isHost ? (
-          <Btn big disabled={guests < 2} onClick={onStart}>
-            {guests < 2 ? 'Waiting for 2+ guests' : `Start the party (${participants.length})`}
+          <Btn big disabled={guests < 2 || songs.length === 0} onClick={onStart}>
+            {songs.length === 0
+              ? 'Add a song to start'
+              : guests < 2
+                ? 'Waiting for 2+ guests'
+                : `Start the party (${participants.length})`}
           </Btn>
         ) : (
           <span className="lobby-wait mono">waiting for the host to start…</span>

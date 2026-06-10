@@ -2954,3 +2954,35 @@ html[data-theme='dark'] .ambient-img {
   color: #c4503e;
   border-color: #c4503e;
 }
+
+/* ============================================================
+   v8 - page transition fade + empty-queue prompt
+   ============================================================ */
+/* opacity-only (safe for the fixed ambient/grain/starfield layers) */
+.screen {
+  animation: screenFade 0.45s var(--ease-damp);
+}
+@keyframes screenFade {
+  from {
+    opacity: 0;
+  }
+}
+
+.lobby-add {
+  transition:
+    color 0.2s,
+    background 0.2s;
+}
+.lobby-add-empty {
+  color: var(--accent);
+  animation: addPulse 1.8s ease-in-out infinite;
+}
+@keyframes addPulse {
+  0%,
+  100% {
+    opacity: 0.7;
+  }
+  50% {
+    opacity: 1;
+  }
+}

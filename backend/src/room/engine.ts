@@ -30,7 +30,6 @@ import {
 import { buildSchedule, botVoteSide } from './bots.js';
 import { synthPeaks } from '../lib/waveform.js';
 import { mulberry32 } from '../lib/prng.js';
-import { laneToGenre, trending } from '../services/itunes.js';
 import {
   buildResultsDTO,
   toCurrentDTO,
@@ -363,31 +362,6 @@ function emitQueue(room: Room): void {
   emitRoom(room, 'queueUpdated', { songs: room.songs.map((s) => toSongDTO(room, s)) });
 }
 
-// Seed the queue from trending by the party's genre. Keep durations sane
-// (1-7 min) so `full` mode isn't a 60-minute track. Emits the queue so clients
-// see it. Used to auto-load songs in the lobby and to top up at start.
-export async function seedQueue(room: Room, count = room.maxSongs): Promise<void> {
-  const slots = Math.max(0, Math.min(count, room.maxSongs - room.songs.length));
-  if (slots === 0) return;
-  const have = new Set(room.songs.map((s) => s.trackId));
-  let tracks: Track[] = await trending(laneToGenre(room.lane), 20);
-  if (tracks.length < slots) {
-    const more = await trending('top hits', 20);
-    for (const t of more) if (!tracks.find((x) => x.id === t.id)) tracks.push(t);
-  }
-  const adder = botIds(room)[0] ?? [...room.participants.values()][0]?.id;
-  if (!adder) return;
-  let added = 0;
-  for (const t of tracks) {
-    if (added >= slots) break;
-    if (have.has(t.id)) continue;
-    have.add(t.id);
-    await addSongToRoom(room, t, adder, /*silent*/ true);
-    added++;
-  }
-  emitQueue(room);
-}
-
 export async function addSongToRoom(
   room: Room,
   track: Track,
@@ -439,8 +413,8 @@ export async function startParty(room: Room): Promise<{ ok: boolean; reason?: st
   if (room.phase !== 'lobby') return { ok: false, reason: 'Already started' };
   const guests = [...room.participants.values()].filter((p) => !p.isHost).length;
   if (guests < 2) return { ok: false, reason: 'Need 2+ guests' };
-  if (room.songs.length === 0) await seedQueue(room);
-  if (room.songs.length === 0) return { ok: false, reason: 'No songs available' };
+  // everyone adds their own songs now - no auto-seeding
+  if (room.songs.length === 0) return { ok: false, reason: 'Add a song to start' };
 
   room.phase = 'party';
   room.partyStartTime = Date.now();
