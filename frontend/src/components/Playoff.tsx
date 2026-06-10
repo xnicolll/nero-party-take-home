@@ -73,7 +73,7 @@ function MomentCard({
             playing this moment
           </>
         ) : (
-          '▶ tap to hear it'
+          'hover to hear it'
         )}
       </span>
       <HeatShape buckets={moment.buckets} color={REACTIONS[moment.glyph].color} w={180} h={30} />
