@@ -3192,28 +3192,20 @@ html[data-theme='dark'] .ambient-img {
    v11 - skip transition (grey + fade), song fade-in, rec hover
    ============================================================ */
 
-/* a skipped song stops + greys out + fades, then the next fades in */
+/* a skipped song greys out + dims, holds, then fades back into the next song */
 .stage-np,
 .stage-wave {
-  transition: filter 0.45s var(--ease-damp);
+  transition: filter 0.6s var(--ease-damp);
 }
 .room2.is-skipping .stage-np,
 .room2.is-skipping .stage-wave {
-  filter: grayscale(1) opacity(0.45);
+  filter: grayscale(1) opacity(0.4);
 }
-.room2.is-skipping .ambient-img {
-  filter: grayscale(1) brightness(0.7);
-  transition: filter 0.45s var(--ease-damp);
+.ambient-veil {
+  transition: filter 0.6s var(--ease-damp);
 }
-/* each new song's art + wave fade in (so a skip resolves into the next) */
-.stage-np {
-  animation: songIn 0.5s var(--ease-damp);
-}
-@keyframes songIn {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
+.room2.is-skipping .ambient-veil {
+  filter: grayscale(1);
 }
 
 /* recs get the same darker-tint + play hover as the crowns */

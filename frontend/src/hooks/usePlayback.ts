@@ -1,11 +1,13 @@
 // ============================================================
 // NERO PARTY - usePlayback
-// Server is the clock. New songs pre-buffer (so the gate plays instantly),
-// fade in/out, preload the next track, and follow the room's global paused
-// flag so play/pause/skip are real-time for everyone. Resumes on tab return.
+// Server is the clock. Two audio elements crossfade like a DJ fader on every
+// song change; the next track pre-buffers so the gate plays instantly; playback
+// follows the room's global paused flag and resumes on tab return.
 // ============================================================
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { CurrentDTO } from '../lib/types';
+
+const FADE_MS = 650; // crossfade length
 
 function makeSilentUrl(): string {
   const sr = 8000;
@@ -33,10 +35,13 @@ function makeSilentUrl(): string {
 }
 
 export function usePlayback(current: CurrentDTO | null, nextUrl?: string | null, paused = false) {
+  // audioRef = the element playing now; partnerRef = the idle one we fade into.
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const partnerRef = useRef<HTMLAudioElement | null>(null);
   const preloadRef = useRef<HTMLAudioElement | null>(null);
   const primedRef = useRef(false);
-  const fadeRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // per-element fade intervals so both sides can fade at once (a real crossfade)
+  const fadesRef = useRef(new Map<HTMLAudioElement, ReturnType<typeof setInterval>>());
   // bumped on every transition; a deferred play whose generation is stale bails,
   // so a song that finishes loading after a skip/stop never starts in the background
   const genRef = useRef(0);
@@ -46,20 +51,26 @@ export function usePlayback(current: CurrentDTO | null, nextUrl?: string | null,
 
   useEffect(() => {
     if (!audioRef.current) {
-      const a = new Audio();
-      a.preload = 'auto';
-      a.volume = 1;
-      (a as HTMLAudioElement & { playsInline: boolean }).playsInline = true;
-      a.id = 'nero-audio';
-      audioRef.current = a;
-      document.body.appendChild(a);
+      const mk = (id: string) => {
+        const a = new Audio();
+        a.preload = 'auto';
+        a.volume = 1;
+        (a as HTMLAudioElement & { playsInline: boolean }).playsInline = true;
+        a.id = id;
+        document.body.appendChild(a);
+        return a;
+      };
+      audioRef.current = mk('nero-audio');
+      partnerRef.current = mk('nero-audio-b');
       const p = new Audio();
       p.preload = 'auto';
       p.muted = true;
       preloadRef.current = p;
     }
-    const a = audioRef.current!;
-    return () => a.pause();
+    return () => {
+      audioRef.current?.pause();
+      partnerRef.current?.pause();
+    };
   }, []);
 
   useEffect(() => {
@@ -73,19 +84,22 @@ export function usePlayback(current: CurrentDTO | null, nextUrl?: string | null,
 
   const fadeTo = useCallback(
     (audio: HTMLAudioElement, target: number, ms: number, done?: () => void) => {
-      if (fadeRef.current) clearInterval(fadeRef.current);
+      const fades = fadesRef.current;
+      const existing = fades.get(audio);
+      if (existing) clearInterval(existing);
       const start = audio.volume;
       const steps = Math.max(1, Math.round(ms / 30));
       let i = 0;
-      fadeRef.current = setInterval(() => {
+      const id = setInterval(() => {
         i++;
         audio.volume = Math.max(0, Math.min(1, start + (target - start) * (i / steps)));
         if (i >= steps) {
-          if (fadeRef.current) clearInterval(fadeRef.current);
-          fadeRef.current = null;
+          clearInterval(id);
+          fades.delete(audio);
           done?.();
         }
       }, 30);
+      fades.set(audio, id);
     },
     [],
   );
@@ -93,13 +107,13 @@ export function usePlayback(current: CurrentDTO | null, nextUrl?: string | null,
   const seekMsFor = (c: CurrentDTO) =>
     Math.max(0, c.clipStartMs + c.positionMs + (Date.now() - c.serverTime));
 
-  // stop now: invalidate any pending play, fade out, pause
+  // stop now: invalidate any pending play, fade both elements out, pause
   const stop = useCallback(
     (ms = 300) => {
       genRef.current++;
-      const audio = audioRef.current;
-      if (!audio) return;
-      if (!audio.paused) fadeTo(audio, 0, ms, () => audio.pause());
+      for (const el of [audioRef.current, partnerRef.current]) {
+        if (el && !el.paused) fadeTo(el, 0, ms, () => el.pause());
+      }
     },
     [fadeTo],
   );
@@ -122,6 +136,7 @@ export function usePlayback(current: CurrentDTO | null, nextUrl?: string | null,
     else audio.addEventListener('loadedmetadata', seek, { once: true });
   }, []);
 
+  // play `c` on the active element, fading in (initial start / resume / resync)
   const seekAndPlay = useCallback(
     (c: CurrentDTO) => {
       const audio = audioRef.current;
@@ -131,7 +146,7 @@ export function usePlayback(current: CurrentDTO | null, nextUrl?: string | null,
       audio.muted = false;
       audio.volume = 0;
       const apply = () => {
-        if (genRef.current !== myGen) return; // a newer transition happened; don't play
+        if (genRef.current !== myGen) return;
         try {
           audio.currentTime = seekMsFor(c) / 1000;
         } catch {
@@ -155,6 +170,45 @@ export function usePlayback(current: CurrentDTO | null, nextUrl?: string | null,
     [fadeTo],
   );
 
+  // crossfade: fade the active element out while the partner fades the new song in
+  const crossfade = useCallback(
+    (c: CurrentDTO) => {
+      const from = audioRef.current;
+      const to = partnerRef.current;
+      if (!from || !to) return seekAndPlay(c);
+      const myGen = ++genRef.current;
+      to.src = c.song.streamUrl;
+      to.muted = false;
+      to.volume = 0;
+      const apply = () => {
+        if (genRef.current !== myGen) return;
+        try {
+          to.currentTime = seekMsFor(c) / 1000;
+        } catch {
+          /* re-applied on loadedmetadata */
+        }
+        to.play()
+          .then(() => {
+            if (genRef.current !== myGen) {
+              to.pause();
+              return;
+            }
+            setNeedsGesture(false);
+            fadeTo(to, 1, FADE_MS);
+          })
+          .catch(() => setNeedsGesture(true));
+      };
+      if (to.readyState >= 1) apply();
+      else to.addEventListener('loadedmetadata', apply, { once: true });
+      // fade the outgoing song down and park it
+      if (!from.paused) fadeTo(from, 0, FADE_MS, () => from.pause());
+      // swap roles so the new song is now "active"
+      audioRef.current = to;
+      partnerRef.current = from;
+    },
+    [fadeTo, seekAndPlay],
+  );
+
   // new song (or stop when current goes null)
   useEffect(() => {
     const audio = audioRef.current;
@@ -174,7 +228,7 @@ export function usePlayback(current: CurrentDTO | null, nextUrl?: string | null,
       return;
     }
     if (!audio.paused && audio.src && audio.src !== c.song.streamUrl) {
-      fadeTo(audio, 0, 160, () => seekAndPlay(c));
+      crossfade(c);
     } else {
       seekAndPlay(c);
     }
@@ -216,23 +270,39 @@ export function usePlayback(current: CurrentDTO | null, nextUrl?: string | null,
 
   const prime = useCallback(() => {
     primedRef.current = true;
+    // unlock the partner element silently so future crossfades can play
+    const partner = partnerRef.current;
+    if (partner) {
+      const s = makeSilentUrl();
+      partner.src = s;
+      partner.muted = false;
+      partner.volume = 0;
+      partner
+        .play()
+        .then(() => {
+          partner.pause();
+          URL.revokeObjectURL(s);
+        })
+        .catch(() => {});
+    }
     const audio = audioRef.current;
-    if (!audio) return;
     const c = currentRef.current;
     if (c && !paused) {
       seekAndPlay(c);
       return;
     }
     const silent = makeSilentUrl();
-    audio.src = silent;
-    audio
-      .play()
-      .then(() => {
-        audio.pause();
-        URL.revokeObjectURL(silent);
-        if (currentRef.current && !paused) seekAndPlay(currentRef.current);
-      })
-      .catch(() => {});
+    if (audio) {
+      audio.src = silent;
+      audio
+        .play()
+        .then(() => {
+          audio.pause();
+          URL.revokeObjectURL(silent);
+          if (currentRef.current && !paused) seekAndPlay(currentRef.current);
+        })
+        .catch(() => {});
+    }
   }, [paused, seekAndPlay]);
 
   return { needsGesture, prime };

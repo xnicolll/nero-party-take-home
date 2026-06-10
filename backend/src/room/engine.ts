@@ -368,10 +368,11 @@ function skipCurrent(
     }
   }
   emitRoom(room, 'songSkipped', { title: song.title, reason, ...extra });
+  // hold the greyed-out transition for 3s before the next song fades in
   setTimeout(() => {
     room.skipping = false;
     advanceAfter(room);
-  }, 700);
+  }, 3000);
 }
 
 // ---- dislikes -> auto-skip --------------------------------------

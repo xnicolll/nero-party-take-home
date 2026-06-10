@@ -167,7 +167,7 @@ export function PartyRoom({
         </aside>
 
         <main className="stage">
-          <div className="stage-np" key={liveSong.id}>
+          <div className="stage-np">
             <div className="stage-art">
               <AlbumArt
                 artworkUrl={liveSong.artworkUrl}
@@ -188,7 +188,7 @@ export function PartyRoom({
             </div>
           </div>
 
-          <div className="stage-wave" key={liveSong.id}>
+          <div className="stage-wave">
             <WavePlayer
               song={liveSong}
               frac={liveFrac}

@@ -71,7 +71,7 @@ export default function App() {
           </div>
         </div>
       ),
-      { duration: 10000 },
+      { duration: 5000 },
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [room.skipEvent]);
@@ -226,7 +226,7 @@ export default function App() {
         </div>
       )}
       {!inParty && <ThemeToggle />}
-      <Toaster position="top-center" toastOptions={{ unstyled: true }} offset={18} />
+      <Toaster position="top-center" offset={18} />
       <Grain amount={4} />
     </>
   );

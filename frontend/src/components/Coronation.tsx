@@ -126,7 +126,7 @@ export function Coronation({
       </div>
 
       <div className="recs">
-        <Eyebrow>WHAT TO PLAY NEXT · matched to your night</Eyebrow>
+        <Eyebrow>WHAT TO PLAY NEXT · matched to your session</Eyebrow>
         {recs === null ? (
           <span className="recs-loading">finding songs your room would love…</span>
         ) : recs.length === 0 ? (
