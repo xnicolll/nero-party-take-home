@@ -37,6 +37,9 @@ export function usePlayback(current: CurrentDTO | null, nextUrl?: string | null,
   const preloadRef = useRef<HTMLAudioElement | null>(null);
   const primedRef = useRef(false);
   const fadeRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // bumped on every transition; a deferred play whose generation is stale bails,
+  // so a song that finishes loading after a skip/stop never starts in the background
+  const genRef = useRef(0);
   const currentRef = useRef<CurrentDTO | null>(current);
   currentRef.current = current;
   const [needsGesture, setNeedsGesture] = useState(false);
@@ -90,12 +93,25 @@ export function usePlayback(current: CurrentDTO | null, nextUrl?: string | null,
   const seekMsFor = (c: CurrentDTO) =>
     Math.max(0, c.clipStartMs + c.positionMs + (Date.now() - c.serverTime));
 
+  // stop now: invalidate any pending play, fade out, pause
+  const stop = useCallback(
+    (ms = 300) => {
+      genRef.current++;
+      const audio = audioRef.current;
+      if (!audio) return;
+      if (!audio.paused) fadeTo(audio, 0, ms, () => audio.pause());
+    },
+    [fadeTo],
+  );
+
   // pre-buffer the clip (no playback) so the gesture starts instantly
   const warm = useCallback((c: CurrentDTO) => {
     const audio = audioRef.current;
     if (!audio) return;
+    const myGen = ++genRef.current;
     if (audio.src !== c.song.streamUrl) audio.src = c.song.streamUrl;
     const seek = () => {
+      if (genRef.current !== myGen) return;
       try {
         audio.currentTime = seekMsFor(c) / 1000;
       } catch {
@@ -110,10 +126,12 @@ export function usePlayback(current: CurrentDTO | null, nextUrl?: string | null,
     (c: CurrentDTO) => {
       const audio = audioRef.current;
       if (!audio) return;
+      const myGen = ++genRef.current;
       if (audio.src !== c.song.streamUrl) audio.src = c.song.streamUrl;
       audio.muted = false;
       audio.volume = 0;
       const apply = () => {
+        if (genRef.current !== myGen) return; // a newer transition happened; don't play
         try {
           audio.currentTime = seekMsFor(c) / 1000;
         } catch {
@@ -122,6 +140,10 @@ export function usePlayback(current: CurrentDTO | null, nextUrl?: string | null,
         audio
           .play()
           .then(() => {
+            if (genRef.current !== myGen) {
+              audio.pause();
+              return;
+            }
             setNeedsGesture(false);
             fadeTo(audio, 1, 450);
           })
@@ -139,7 +161,7 @@ export function usePlayback(current: CurrentDTO | null, nextUrl?: string | null,
     if (!audio) return;
     const c = currentRef.current;
     if (!c) {
-      if (!audio.paused) fadeTo(audio, 0, 320, () => audio.pause());
+      stop(320);
       return;
     }
     if (!primedRef.current) {
@@ -166,15 +188,14 @@ export function usePlayback(current: CurrentDTO | null, nextUrl?: string | null,
       firstPaused.current = false;
       return;
     }
-    const audio = audioRef.current;
     const c = currentRef.current;
-    if (!audio || !primedRef.current || !c) return;
+    if (!primedRef.current || !c) return;
     if (paused) {
-      if (!audio.paused) fadeTo(audio, 0, 150, () => audio.pause());
+      stop(150);
     } else {
       seekAndPlay(c);
     }
-  }, [paused, seekAndPlay, fadeTo]);
+  }, [paused, seekAndPlay, stop]);
 
   // returning to the tab can suspend audio - resync
   useEffect(() => {
