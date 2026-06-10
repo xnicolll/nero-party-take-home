@@ -30,6 +30,8 @@ interface PartyRoomProps {
   youId: string;
   isHost: boolean;
   awaitingMore: boolean;
+  paused: boolean;
+  onTogglePlay: () => void;
   onReact: (t: ReactionType) => void;
   onSkip: () => void;
   onEnd: () => void;
@@ -51,6 +53,8 @@ export function PartyRoom({
   youId,
   isHost,
   awaitingMore,
+  paused,
+  onTogglePlay,
   onReact,
   onSkip,
   onEnd,
@@ -68,6 +72,7 @@ export function PartyRoom({
   );
   const windowSec = current.effectiveDurationMs / 1000;
   const queueFull = songs.length >= party.maxSongs;
+  const host = participants.find((p) => p.isHost);
 
   return (
     <div className="room2">
@@ -86,6 +91,7 @@ export function PartyRoom({
             <span className="r2-name">{party.name}</span>
             <span className="r2-sub">
               SONG {current.idx + 1}/{current.total} · {party.lane.toLowerCase()}
+              {host ? ` · hosted by ${host.name}` : ''}
             </span>
           </div>
         </div>
@@ -147,6 +153,7 @@ export function PartyRoom({
                 hue={liveSong.hue}
                 size={196}
                 radius={22}
+                priority
               />
             </div>
             <div>
@@ -173,9 +180,35 @@ export function PartyRoom({
           <div className="stage-react">
             <ReactionBar onReact={onReact} chillsLeft={chillsLeft} />
           </div>
-          <p className="stage-hint mono">
-            tap = pinned to this second · 3 people in 2s = sync · keys 1–5
-          </p>
+
+          <div className="transport">
+            <button
+              className={'transport-btn glass' + (paused ? ' is-paused' : '')}
+              onClick={onTogglePlay}
+              disabled={!isHost}
+              title={
+                isHost
+                  ? paused
+                    ? 'resume for everyone'
+                    : 'pause for everyone'
+                  : 'host controls playback'
+              }
+            >
+              {paused ? '▶' : '❚❚'}
+            </button>
+            {isHost && (
+              <button className="transport-btn glass" onClick={onSkip} title="skip for everyone">
+                ▸▸
+              </button>
+            )}
+            <span className="transport-state mono">
+              {paused
+                ? 'paused by host'
+                : isHost
+                  ? 'you control playback'
+                  : 'tap a feeling · keys 1–5'}
+            </span>
+          </div>
         </main>
       </div>
 

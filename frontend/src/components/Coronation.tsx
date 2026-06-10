@@ -8,6 +8,7 @@ import { REACTIONS, fmtTime, mulberry32, seedFromId } from '../lib/nero';
 import type { Rec, ReactionType, ResultsDTO } from '../lib/types';
 import { AlbumArt, Btn, Eyebrow, HeatShape, RGlyph, StarField } from './atoms';
 import { SnippetPlayer, type SnippetTrack } from './SnippetPlayer';
+import { Modal } from './Modal';
 
 const STORM_TYPES: ReactionType[] = ['drop', 'groove', 'feels', 'wtf', 'chills'];
 
@@ -89,22 +90,35 @@ export function Coronation({
         {champ && (
           <div className="crown-card crown-song">
             <Eyebrow color="var(--accent)">SONG OF THE NIGHT</Eyebrow>
-            <AlbumArt artworkUrl={champ.artworkUrl} hue={champ.hue} size={188} radius={20} />
-            <h2 className="crown-title">{champ.title}</h2>
+            <div className="crown-art">
+              <AlbumArt
+                artworkUrl={champ.artworkUrl}
+                hue={champ.hue}
+                size={160}
+                radius={18}
+                priority
+              />
+            </div>
+            <h3 className="crown-mtitle">{champ.title}</h3>
             <p className="crown-artist">{champ.artist}</p>
             <div className="mono crown-stat">
               {champ.score.toFixed(1)} heat/min · queued by {champ.addedByName.toLowerCase()}
             </div>
-            <HeatShape buckets={champ.buckets} w={240} h={34} />
           </div>
         )}
         {moment && (
           <div className="crown-card crown-moment">
             <Eyebrow color={REACTIONS[moment.glyph].color}>MOMENT OF THE NIGHT</Eyebrow>
             <div className="crown-art">
-              <AlbumArt artworkUrl={moment.artworkUrl} hue={moment.hue} size={188} radius={20} />
+              <AlbumArt
+                artworkUrl={moment.artworkUrl}
+                hue={moment.hue}
+                size={160}
+                radius={18}
+                priority
+              />
               <span className="moment-badge">
-                <RGlyph type={moment.glyph} size={26} />
+                <RGlyph type={moment.glyph} size={24} />
               </span>
             </div>
             <h3 className="crown-mtitle">{moment.title}</h3>
@@ -171,7 +185,9 @@ export function Coronation({
         </Btn>
       </div>
 
-      {snippet && <SnippetPlayer track={snippet} onClose={() => setSnippet(null)} />}
+      <Modal open={!!snippet} onClose={() => setSnippet(null)}>
+        {snippet && <SnippetPlayer track={snippet} onDone={() => setSnippet(null)} />}
+      </Modal>
     </div>
   );
 }

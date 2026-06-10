@@ -135,6 +135,7 @@ export interface Snapshot {
   finale: FinaleState | null;
   results: ResultsDTO | null;
   awaitingMore: boolean;
+  paused: boolean;
 }
 
 export interface ReactionAdded {

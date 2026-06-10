@@ -134,6 +134,7 @@ export function createRoom(
     tick: null,
     emptySince: null,
     awaitingMore: false,
+    paused: false,
   };
   registerRoom(room);
   return room;
@@ -272,6 +273,7 @@ function botIds(room: Room): string[] {
 function startSong(room: Room): void {
   const song = currentSong(room);
   if (!song) return;
+  room.paused = false;
   room.frac = 0;
   room.positionMs = 0;
   room.recent = [];
@@ -306,6 +308,7 @@ function startSong(room: Room): void {
 
 function tick(room: Room): void {
   if (room.phase !== 'party') return;
+  if (room.paused) return; // frozen: position + reactions don't advance
   const song = currentSong(room);
   if (!song) return;
   const now = Date.now();
@@ -454,6 +457,29 @@ export async function startParty(room: Room): Promise<{ ok: boolean; reason?: st
   startSong(room);
   room.tick = setInterval(() => tick(room), TICK_MS);
   return { ok: true };
+}
+
+// Host pauses playback for everyone — the clock + reactions freeze.
+export function hostPause(room: Room): void {
+  if (room.phase !== 'party' || room.paused) return;
+  room.paused = true;
+  emitRoom(room, 'playback', { paused: true, positionMs: room.positionMs, serverTime: Date.now() });
+}
+
+// Host resumes — position continues from where it froze.
+export function hostResume(room: Room): void {
+  if (room.phase !== 'party' || !room.paused) return;
+  room.paused = false;
+  room.songStartServerTime = Date.now() - room.positionMs;
+  const song = currentSong(room);
+  emitRoom(room, 'playback', {
+    paused: false,
+    positionMs: room.positionMs,
+    serverTime: Date.now(),
+    effectiveDurationMs: room.effectiveDurationMs,
+    clipStartMs: room.clipStartMs,
+    streamUrl: song?.streamUrl ?? null,
+  });
 }
 
 export function hostSkip(room: Room): void {

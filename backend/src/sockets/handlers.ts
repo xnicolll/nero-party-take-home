@@ -15,6 +15,8 @@ import {
   createRoom,
   finishParty,
   hostEnd,
+  hostPause,
+  hostResume,
   hostSkip,
   humanReact,
   seedQueue,
@@ -75,7 +77,7 @@ export function registerSocketHandlers(io: Server): void {
         const host = await prisma.participant.create({
           data: {
             partyId: party.id,
-            name: cleanName(payload?.hostName, 'You'),
+            name: cleanName(payload?.hostName, 'Host'),
             color: HOST_COLOR,
             isHost: true,
             chillsLeft: party.chillsBudget,
@@ -231,6 +233,17 @@ export function registerSocketHandlers(io: Server): void {
       const room = roomFromSocket(socket);
       if (!room || payload?.hostToken !== room.hostToken) return;
       finishParty(room);
+    });
+    // host pauses / resumes playback for everyone
+    socket.on('hostPause', (payload: any) => {
+      const room = roomFromSocket(socket);
+      if (!room || payload?.hostToken !== room.hostToken) return;
+      hostPause(room);
+    });
+    socket.on('hostResume', (payload: any) => {
+      const room = roomFromSocket(socket);
+      if (!room || payload?.hostToken !== room.hostToken) return;
+      hostResume(room);
     });
 
     // ---- recommendations (coronation) ----

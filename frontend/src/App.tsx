@@ -40,9 +40,9 @@ function ThemeToggle() {
 export default function App() {
   const room = useRoom();
   // only feed audio while a song is actively playing (stops at intermission/finale)
-  const { needsGesture, prime } = usePlayback(
-    room.phase === 'party' && !room.awaitingMore ? room.current : null,
-  );
+  const activeCurrent = room.phase === 'party' && !room.awaitingMore ? room.current : null;
+  const nextUrl = activeCurrent ? (room.songs[activeCurrent.idx + 1]?.streamUrl ?? null) : null;
+  const { needsGesture, prime } = usePlayback(activeCurrent, nextUrl, room.paused);
   const [uiPhase, setUiPhase] = useState<'landing' | 'create'>('landing');
   const [joinCode, setJoinCode] = useState<string | null>(parseJoinCode());
   const [creating, setCreating] = useState(false);
@@ -128,6 +128,10 @@ export default function App() {
         youId={room.you?.participantId ?? ''}
         isHost={room.isHost}
         awaitingMore={room.awaitingMore}
+        paused={room.paused}
+        onTogglePlay={() =>
+          room.paused ? room.actions.resumePlayback() : room.actions.pausePlayback()
+        }
         onReact={room.actions.react}
         onSkip={room.actions.skip}
         onEnd={room.actions.end}

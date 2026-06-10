@@ -224,7 +224,12 @@ export function Landing({ onBegin }: { onBegin: () => void }) {
             how it works
           </button>
         </div>
-        <span className="pillnav-cue">{navP > 0.5 ? '↑ top' : 'scroll ↓'}</span>
+        <button
+          className="pillnav-link pillnav-cue"
+          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+        >
+          {navP > 0.5 ? '↑ top' : 'scroll ↓'}
+        </button>
       </nav>
       <header className="hero">
         <div className="hero-path">

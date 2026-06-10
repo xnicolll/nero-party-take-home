@@ -2,7 +2,7 @@
 // NERO PARTY — finale playoff (ported from nero-finale.jsx)
 // Server runs the bracket + bot votes; the client renders + casts one vote.
 // ============================================================
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { REACTIONS } from '../lib/nero';
 import type { FinaleState, MomentDTO } from '../lib/types';
 import { AlbumArt, Eyebrow, HeatShape, RGlyph, StarField } from './atoms';
@@ -14,7 +14,10 @@ function MomentCard({
   total,
   winner,
   dimmed,
+  playing,
   onPick,
+  onHover,
+  onLeave,
 }: {
   moment: MomentDTO;
   picked: boolean;
@@ -22,7 +25,10 @@ function MomentCard({
   total: number;
   winner: boolean;
   dimmed: boolean;
+  playing: boolean;
   onPick: (() => void) | null;
+  onHover: () => void;
+  onLeave: () => void;
 }) {
   return (
     <button
@@ -30,9 +36,12 @@ function MomentCard({
         'mcard' +
         (picked ? ' mcard-picked' : '') +
         (winner ? ' mcard-winner' : '') +
-        (dimmed ? ' mcard-dim' : '')
+        (dimmed ? ' mcard-dim' : '') +
+        (playing ? ' mcard-playing' : '')
       }
       onClick={onPick ?? undefined}
+      onMouseEnter={onHover}
+      onMouseLeave={onLeave}
       disabled={!onPick}
     >
       <div className="mcard-top">
@@ -42,6 +51,16 @@ function MomentCard({
       <h3 className="mcard-title">{moment.title}</h3>
       <p className="mcard-artist">{moment.artist}</p>
       <div className="mcard-ts mono">at {moment.ts}</div>
+      <div className="mcard-playhint">
+        {playing ? (
+          <>
+            <span className="dot" />
+            playing this moment
+          </>
+        ) : (
+          'hover to hear it'
+        )}
+      </div>
       <HeatShape buckets={moment.buckets} color={REACTIONS[moment.glyph].color} w={180} h={30} />
       <div className="mcard-votes">
         <span className="mcard-bar" style={{ width: total ? (votes / total) * 100 + '%' : 0 }} />
@@ -53,6 +72,44 @@ function MomentCard({
 
 export function Playoff({ finale, onVote }: { finale: FinaleState; onVote: (s: 0 | 1) => void }) {
   const [picked, setPicked] = useState<0 | 1 | null>(null);
+  const [previewing, setPreviewing] = useState<0 | 1 | null>(null);
+  const previewRef = useRef<HTMLAudioElement | null>(null);
+
+  // one audio element for moment previews
+  useEffect(() => {
+    const a = new Audio();
+    a.preload = 'auto';
+    previewRef.current = a;
+    return () => {
+      a.pause();
+      a.src = '';
+    };
+  }, []);
+
+  const hoverPreview = (side: 0 | 1, m: MomentDTO) => {
+    const a = previewRef.current;
+    if (!a) return;
+    if (a.src !== m.streamUrl) a.src = m.streamUrl;
+    const begin = () => {
+      try {
+        a.currentTime = Math.max(
+          0,
+          Math.min((m.durationSec || 60) - 1, m.frac * (m.durationSec || 60)),
+        );
+      } catch {
+        /* ignore */
+      }
+      a.volume = 0.85;
+      a.play().catch(() => {});
+    };
+    if (a.readyState >= 1) begin();
+    else a.addEventListener('loadedmetadata', begin, { once: true });
+    setPreviewing(side);
+  };
+  const stopPreview = () => {
+    previewRef.current?.pause();
+    setPreviewing(null);
+  };
 
   // reset local pick when the match changes
   const matchKey = `${finale.stage}:${finale.round}:${finale.pair?.[0]?.songId ?? ''}:${finale.pair?.[1]?.frac ?? ''}`;
@@ -95,7 +152,10 @@ export function Playoff({ finale, onVote }: { finale: FinaleState; onVote: (s: 0
           total={total}
           winner={decided === 0}
           dimmed={decided === 1}
+          playing={previewing === 0}
           onPick={picked == null && decided == null ? () => pick(0) : null}
+          onHover={() => hoverPreview(0, finale.pair![0])}
+          onLeave={stopPreview}
         />
         <span className="playoff-vs">vs</span>
         <MomentCard
@@ -105,7 +165,10 @@ export function Playoff({ finale, onVote }: { finale: FinaleState; onVote: (s: 0
           total={total}
           winner={decided === 1}
           dimmed={decided === 0}
+          playing={previewing === 1}
           onPick={picked == null && decided == null ? () => pick(1) : null}
+          onHover={() => hoverPreview(1, finale.pair![1])}
+          onLeave={stopPreview}
         />
       </div>
     </div>

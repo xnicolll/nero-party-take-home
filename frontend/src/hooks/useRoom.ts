@@ -45,6 +45,7 @@ interface RoomState {
   pins: LivePin[]; // live pins for the current song
   bursts: Burst[];
   awaitingMore: boolean; // queue exhausted, host deciding
+  paused: boolean; // host paused playback for everyone
 }
 
 const EMPTY: RoomState = {
@@ -61,6 +62,7 @@ const EMPTY: RoomState = {
   pins: [],
   bursts: [],
   awaitingMore: false,
+  paused: false,
 };
 
 type Action =
@@ -76,6 +78,7 @@ type Action =
   | { type: 'finale'; finale: FinaleState }
   | { type: 'results'; results: ResultsDTO }
   | { type: 'queueExhausted' }
+  | { type: 'playback'; paused: boolean; serverTime: number; positionMs: number }
   | { type: 'localChills' }
   | { type: 'reset' };
 
@@ -101,6 +104,7 @@ function reducer(state: RoomState, action: Action): RoomState {
         pins: (s.current?.song.pins ?? []).map((p) => ({ ...p, name: '', t: 0 })),
         bursts: [],
         awaitingMore: s.awaitingMore,
+        paused: s.paused,
       };
     }
     case 'participantJoined': {
@@ -120,9 +124,17 @@ function reducer(state: RoomState, action: Action): RoomState {
     case 'queueUpdated':
       return { ...state, songs: action.songs };
     case 'phaseChanged':
-      return { ...state, phase: action.phase, awaitingMore: false };
+      return { ...state, phase: action.phase, awaitingMore: false, paused: false };
     case 'queueExhausted':
       return { ...state, awaitingMore: true };
+    case 'playback':
+      return {
+        ...state,
+        paused: action.paused,
+        current: state.current
+          ? { ...state.current, serverTime: action.serverTime, positionMs: action.positionMs }
+          : state.current,
+      };
     case 'songChanged': {
       // replace the current song entry with its fresh (reset) version
       const songs = state.songs.map((s) =>
@@ -135,6 +147,7 @@ function reducer(state: RoomState, action: Action): RoomState {
         pins: action.current.song.pins.map((p) => ({ ...p, name: '', t: 0 })),
         bursts: [],
         awaitingMore: false,
+        paused: false,
       };
     }
     case 'reactionAdded': {
@@ -264,6 +277,23 @@ export function useRoom() {
     socket.on('finaleState', (f: FinaleState) => dispatch({ type: 'finale', finale: f }));
     socket.on('results', (r: ResultsDTO) => dispatch({ type: 'results', results: r }));
     socket.on('queueExhausted', () => dispatch({ type: 'queueExhausted' }));
+    socket.on(
+      'playback',
+      (d: {
+        paused: boolean;
+        positionMs: number;
+        serverTime: number;
+        effectiveDurationMs?: number;
+      }) => {
+        setAnchor(d.serverTime, d.positionMs, d.effectiveDurationMs ?? anchor.current.effDur);
+        dispatch({
+          type: 'playback',
+          paused: d.paused,
+          serverTime: d.serverTime,
+          positionMs: d.positionMs,
+        });
+      },
+    );
     socket.on('tick', (d: { positionMs: number; serverTime: number }) =>
       setAnchor(d.serverTime, d.positionMs, anchor.current.effDur),
     );
@@ -282,6 +312,7 @@ export function useRoom() {
       socket.off('finaleState');
       socket.off('results');
       socket.off('queueExhausted');
+      socket.off('playback');
       socket.off('tick');
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -309,6 +340,21 @@ export function useRoom() {
     return () => clearInterval(id);
   }, [state.phase]);
 
+  // preload album art (deduped) so covers never pop in late
+  const preloadedRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    const urls = [state.current?.song.artworkUrl, ...state.songs.map((s) => s.artworkUrl)].filter(
+      (u): u is string => !!u,
+    );
+    for (const u of urls) {
+      if (!preloadedRef.current.has(u)) {
+        preloadedRef.current.add(u);
+        const im = new Image();
+        im.src = u;
+      }
+    }
+  }, [state.songs, state.current]);
+
   function setAnchor(serverTime: number, positionMs: number, effDur: number) {
     anchor.current = { serverTime, positionMs, effDur: effDur || 1, skew: serverTime - Date.now() };
   }
@@ -316,6 +362,7 @@ export function useRoom() {
   const liveFrac = (() => {
     if (!state.current) return 0;
     const a = anchor.current;
+    if (state.paused) return Math.max(0, Math.min(1, a.positionMs / a.effDur));
     const pos = a.positionMs + (Date.now() + a.skew - a.serverTime);
     return Math.max(0, Math.min(1, pos / a.effDur));
   })();
@@ -388,6 +435,14 @@ export function useRoom() {
     () => socket.emit('finishParty', { hostToken: hostTokenRef.current }),
     [],
   );
+  const pausePlayback = useCallback(
+    () => socket.emit('hostPause', { hostToken: hostTokenRef.current }),
+    [],
+  );
+  const resumePlayback = useCallback(
+    () => socket.emit('hostResume', { hostToken: hostTokenRef.current }),
+    [],
+  );
   const vote = useCallback((side: 0 | 1) => socket.emit('castVote', { side }), []);
   const getRecs = useCallback(async () => {
     const r = await emitAck<any>('getRecs', {});
@@ -414,6 +469,8 @@ export function useRoom() {
       skip,
       end,
       finish,
+      pausePlayback,
+      resumePlayback,
       vote,
       getRecs,
       reset,

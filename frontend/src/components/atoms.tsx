@@ -46,19 +46,29 @@ export function AlbumArt({
   size = 64,
   spinning,
   radius,
+  priority,
 }: {
   artworkUrl: string | null;
   hue: number;
   size?: number;
   spinning?: boolean;
   radius?: number;
+  priority?: boolean;
 }) {
   const [failed, setFailed] = useState(false);
+  // a new URL should retry (don't stay stuck on the vinyl fallback)
+  useEffect(() => setFailed(false), [artworkUrl]);
   if (!artworkUrl || failed) return <VinylArt hue={hue} size={size} spinning={spinning} />;
   const r = radius ?? Math.round(size * 0.16);
   return (
     <div className="albumart" style={{ width: size, height: size, borderRadius: r }}>
-      <img src={artworkUrl} alt="" loading="lazy" onError={() => setFailed(true)} />
+      <img
+        src={artworkUrl}
+        alt=""
+        loading={priority ? 'eager' : 'lazy'}
+        decoding="async"
+        onError={() => setFailed(true)}
+      />
     </div>
   );
 }

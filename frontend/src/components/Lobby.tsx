@@ -4,10 +4,10 @@
 // ============================================================
 import { useEffect, useRef, useState } from 'react';
 import type { ParticipantDTO, PartyDTO, SongDTO, Track } from '../lib/types';
-import { AlbumArt, Btn, Eyebrow, StarField } from './atoms';
+import { Btn, Eyebrow, StarField } from './atoms';
 import { SongSearch } from './SongSearch';
 import { SnippetPlayer, type SnippetTrack } from './SnippetPlayer';
-import { fmtTime } from '../lib/nero';
+import { Modal } from './Modal';
 
 interface LobbyProps {
   party: PartyDTO;
@@ -44,6 +44,7 @@ export function Lobby({
   // nodes = everyone except yourself; you are the center orb
   const others = participants.filter((p) => p.id !== youId);
   const guests = participants.filter((p) => !p.isHost).length;
+  const host = participants.find((p) => p.isHost);
   const inviteUrl = `${window.location.host}/j/${party.joinCode}`;
 
   useEffect(() => {
@@ -103,8 +104,8 @@ export function Lobby({
       </button>
       <div className="lobby-top">
         <Eyebrow>
-          ~/lobby · {party.lane.toLowerCase()} · {party.maxSongs} songs max ·{' '}
-          {party.songLengthMode === 'clip' ? '45s clips' : 'full tracks'}
+          ~/lobby · {party.lane.toLowerCase()} · {party.maxSongs} songs max
+          {host ? ` · hosted by ${host.name}` : ''}
         </Eyebrow>
         <h2 className="lobby-title">{party.name}</h2>
       </div>
@@ -155,60 +156,41 @@ export function Lobby({
         )}
       </div>
 
-      {showSongs && (
-        <div className="tut-overlay" onClick={() => setShowSongs(false)}>
-          <div className="tut-card" style={{ width: 420 }} onClick={(e) => e.stopPropagation()}>
-            <span className="tut-path">
-              ~/queue · {songs.length}/{party.maxSongs}
+      <Modal open={showSongs} onClose={() => setShowSongs(false)}>
+        <div className="tut-card" style={{ width: 440 }}>
+          <span className="tut-path">
+            ~/queue · {songs.length}/{party.maxSongs}
+          </span>
+          <SongSearch
+            search={search}
+            add={add}
+            onPreview={(t) =>
+              setSnippet({
+                title: t.title,
+                artist: t.artist,
+                streamUrl: t.streamUrl,
+                artworkUrl: t.artworkUrl,
+                hue: t.hue,
+                durationSec: t.durationSec,
+              })
+            }
+            full={songs.length >= party.maxSongs}
+            queuedIds={new Set(songs.map((s) => s.audiusId))}
+          />
+          <div className="tut-foot">
+            <span className="lobby-wait mono">
+              {songs.length} queued · friends can add via the link
             </span>
-            <SongSearch
-              search={search}
-              add={add}
-              full={songs.length >= party.maxSongs}
-              queuedIds={new Set(songs.map((s) => s.audiusId))}
-            />
-            {songs.length > 0 && (
-              <div className="search-results" style={{ maxHeight: 150 }}>
-                {songs.map((s) => (
-                  <button
-                    key={s.id}
-                    className="search-row qrow"
-                    onClick={() =>
-                      setSnippet({
-                        title: s.title,
-                        artist: s.artist,
-                        streamUrl: s.streamUrl,
-                        artworkUrl: s.artworkUrl,
-                        hue: s.hue,
-                        durationSec: s.durationSec,
-                      })
-                    }
-                  >
-                    <AlbumArt artworkUrl={s.artworkUrl} hue={s.hue} size={30} radius={6} />
-                    <div className="search-row-meta">
-                      <b>{s.title}</b>
-                      <span>
-                        {s.artist} · {fmtTime(s.durationSec)} · {s.addedByName.toLowerCase()}
-                      </span>
-                    </div>
-                    <span className="search-row-add mono">▶ preview</span>
-                  </button>
-                ))}
-              </div>
-            )}
-            <div className="tut-foot">
-              <span className="lobby-wait mono">
-                tap a song to preview · friends can add via the link
-              </span>
-              <button className="tut-next" onClick={() => setShowSongs(false)}>
-                done →
-              </button>
-            </div>
+            <button className="tut-next" onClick={() => setShowSongs(false)}>
+              done →
+            </button>
           </div>
         </div>
-      )}
+      </Modal>
 
-      {snippet && <SnippetPlayer track={snippet} onClose={() => setSnippet(null)} />}
+      <Modal open={!!snippet} onClose={() => setSnippet(null)}>
+        {snippet && <SnippetPlayer track={snippet} onDone={() => setSnippet(null)} />}
+      </Modal>
     </div>
   );
 }

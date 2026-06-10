@@ -174,5 +174,6 @@ export function toSnapshot(room: Room, participantId: string): Snapshot {
     finale: toFinaleState(room),
     results: room.phase === 'coronation' ? buildResultsDTO(room) : null,
     awaitingMore: room.awaitingMore,
+    paused: room.paused,
   };
 }

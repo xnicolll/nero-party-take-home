@@ -2571,3 +2571,215 @@ html[data-theme='dark'] .ambient-img {
 .rec-card {
   cursor: pointer;
 }
+
+/* ============================================================
+   v4 — transport, flatter cards, hard spine, modal transitions
+   ============================================================ */
+
+/* transport (play / pause / skip) under the reactions */
+.transport {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 4px;
+}
+.transport-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  color: var(--ink);
+  transition:
+    color 0.15s,
+    border-color 0.15s;
+}
+.transport-btn:hover {
+  color: var(--accent);
+  border-color: color-mix(in oklab, var(--accent) 50%, transparent);
+}
+.transport-hint {
+  font-size: 10px;
+  color: var(--ink-faint);
+  letter-spacing: 0.03em;
+  margin-left: 4px;
+}
+
+/* reaction chips now match the landing cards: transparent, just a border */
+.rchip {
+  background: transparent;
+  backdrop-filter: none;
+  box-shadow: none;
+  border-color: color-mix(in oklab, var(--ink) 14%, transparent);
+}
+.rchip:hover:not(:disabled),
+.rchip:active:not(:disabled) {
+  box-shadow: none;
+  border-color: var(--rc);
+}
+
+/* queue cards sit flat on the surface — no frosted halo behind them */
+.pcard {
+  backdrop-filter: none;
+  background: color-mix(in oklab, var(--panel) 88%, transparent);
+  box-shadow: 0 2px 10px rgba(20, 16, 12, 0.06);
+}
+.pcard-live {
+  box-shadow: 0 0 0 1px color-mix(in oklab, var(--accent) 35%, transparent);
+}
+
+/* spine is a hard wall — cards vanish the instant they cross it, no fade */
+.spine-mask {
+  background: var(--bg);
+  width: 45px;
+}
+
+/* ---------- reusable modal with silky open/close ---------- */
+.modal-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 85;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in oklab, var(--ink) 32%, transparent);
+  backdrop-filter: blur(4px);
+  animation: scrimIn 0.24s var(--ease-damp);
+}
+.modal-scrim.closing {
+  animation: scrimOut 0.2s var(--ease-damp) forwards;
+}
+.modal-body {
+  animation: modalIn 0.34s var(--ease-spring);
+}
+.modal-body.closing {
+  animation: modalOut 0.2s var(--ease-damp) forwards;
+}
+@keyframes scrimIn {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes scrimOut {
+  to {
+    opacity: 0;
+  }
+}
+@keyframes modalIn {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.96);
+  }
+}
+@keyframes modalOut {
+  to {
+    opacity: 0;
+    transform: translateY(10px) scale(0.97);
+  }
+}
+
+/* moment hover-preview feedback (finale) */
+.mcard-playing {
+  border-color: var(--accent);
+}
+.mcard-playhint {
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  color: var(--accent);
+  height: 12px;
+}
+.mcard-playhint .dot {
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--accent);
+  margin-right: 5px;
+  animation: pulseDot 0.9s ease-in-out infinite;
+  vertical-align: middle;
+}
+@keyframes pulseDot {
+  0%,
+  100% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* search row preview + add buttons */
+.search-row-btn {
+  flex: 0 0 auto;
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  padding: 6px 11px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--ink-dim);
+  transition:
+    color 0.14s,
+    border-color 0.14s,
+    background 0.14s;
+}
+.search-row-btn:hover:not(:disabled) {
+  color: var(--ink);
+  border-color: var(--ink-dim);
+}
+.search-row-btn.add {
+  color: var(--accent);
+  border-color: color-mix(in oklab, var(--accent) 40%, transparent);
+}
+.search-row-btn.add:hover:not(:disabled) {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+.search-row-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* ============================================================
+   v5 — fix ambient painting over content; transport state
+   ============================================================ */
+/* the ambient is a positioned z:0 layer; without this it paints ABOVE the
+   non-positioned room content. Pin content above it explicitly. */
+.ambient {
+  z-index: -1;
+}
+.room2-top {
+  position: relative;
+  z-index: 20;
+}
+.room2-body {
+  position: relative;
+  z-index: 5;
+}
+
+/* paused indicator on the transport */
+.transport-btn.is-paused {
+  color: var(--accent);
+  border-color: color-mix(in oklab, var(--accent) 50%, transparent);
+}
+.transport-state {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: var(--ink-faint);
+}
+
+.transport-btn:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+.transport-btn:disabled:hover {
+  color: var(--ink);
+  border-color: color-mix(in oklab, var(--ink) 8%, transparent);
+}

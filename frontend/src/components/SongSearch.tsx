@@ -9,11 +9,13 @@ import { AlbumArt } from './atoms';
 export function SongSearch({
   search,
   add,
+  onPreview,
   full,
   queuedIds,
 }: {
   search: (q: string) => Promise<Track[]>;
   add: (t: Track) => Promise<{ ok: boolean; reason?: string }>;
+  onPreview?: (t: Track) => void;
   full?: boolean; // queue is full
   queuedIds: Set<string>;
 }) {
@@ -56,6 +58,10 @@ export function SongSearch({
         placeholder="search a song to add…"
         value={q}
         onChange={(e) => setQ(e.target.value)}
+        autoComplete="off"
+        autoCorrect="off"
+        autoCapitalize="off"
+        spellCheck={false}
         autoFocus
       />
       <div className="search-results">
@@ -66,12 +72,7 @@ export function SongSearch({
         {results.map((t) => {
           const isQueued = queuedIds.has(t.id) || added.has(t.id);
           return (
-            <button
-              key={t.id}
-              className="search-row"
-              disabled={!!full || isQueued || adding === t.id}
-              onClick={() => onAdd(t)}
-            >
+            <div key={t.id} className="search-row">
               <AlbumArt artworkUrl={t.artworkUrl} hue={t.hue} size={34} radius={6} />
               <div className="search-row-meta">
                 <b>{t.title}</b>
@@ -79,10 +80,23 @@ export function SongSearch({
                   {t.artist} · {fmtTime(t.durationSec)}
                 </span>
               </div>
-              <span className="search-row-add mono">
+              {onPreview && (
+                <button
+                  className="search-row-btn mono"
+                  onClick={() => onPreview(t)}
+                  title="preview"
+                >
+                  ▶
+                </button>
+              )}
+              <button
+                className="search-row-btn add mono"
+                disabled={!!full || isQueued || adding === t.id}
+                onClick={() => onAdd(t)}
+              >
                 {isQueued ? 'QUEUED ✓' : adding === t.id ? 'ADDING…' : full ? 'FULL' : '+ ADD'}
-              </span>
-            </button>
+              </button>
+            </div>
           );
         })}
       </div>
