@@ -77,3 +77,11 @@ npm run cleanup:check  # verify
 - **Desktop-first** - built for a wide layout (leaderboard sidebar + party room). No responsiveness.
 - **Best-effort sync** - clients trust the server clock and seek on song change; no sub-second drift correction (1x playback, negligible within a 30s clip).
 - **Audio Accessibility** - Could implement in future.
+- **Defensive design** - done as best as possible with limited QA, to keep users on the intended flow + scope.
+- **Join link** - works locally via the shared link, just not shown in the demo video.
+
+## With more time
+
+- Only one QA pass so far. More time means more polish + refinement.
+- Linking music + location integration.
+- Motion control or voice commands for hands-free reacting.
