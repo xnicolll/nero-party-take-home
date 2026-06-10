@@ -4,7 +4,7 @@ A listening party where each second counts. Friends join with the link, queue so
 react live. Instead of rating a whole song with a number, you tap emotions
 the exact second they happen. After, the top moments battle 1v1 and a song gets crowned.
 
-> Built on the provided stack (Express + Prisma + Socket.IO, React + Vite + Tailwind, SQLite).
+> Built on the provided stack (Express + Prisma + Socket.IO, React + Vite + Tailwind / Custom CSS, SQLite).
 > Real music from **iTunes Search API**, up to 3 simulated guests for demo.
 
 ## The one big idea
