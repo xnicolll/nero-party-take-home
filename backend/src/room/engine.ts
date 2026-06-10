@@ -131,6 +131,7 @@ export function createRoom(
     paused: false,
     dislikes: new Set(),
     dislikeTimers: [],
+    skipping: false,
   };
   registerRoom(room);
   return room;
@@ -273,6 +274,7 @@ function startSong(room: Room): void {
   room.frac = 0;
   room.positionMs = 0;
   room.recent = [];
+  room.skipping = false;
   room.dislikes = new Set();
   room.dislikeTimers.forEach(clearTimeout);
   room.dislikeTimers = [];
@@ -294,7 +296,7 @@ function startSong(room: Room): void {
 
 function tick(room: Room): void {
   if (room.phase !== 'party') return;
-  if (room.paused) return; // frozen: position + reactions don't advance
+  if (room.paused || room.skipping) return; // frozen: position + reactions don't advance
   const song = currentSong(room);
   if (!song) return;
   const now = Date.now();
@@ -342,16 +344,21 @@ function advanceAfter(room: Room): void {
   }
 }
 
-// skip the current song with a reason broadcast for the 10s toast
+// skip the current song with a reason broadcast for the 10s toast. We hold
+// `skipping` briefly so the UI can stop the audio + grey out + fade before the
+// next song comes in (or the party wraps up).
 function skipCurrent(
   room: Room,
   reason: string,
   flush: boolean,
   extra: Record<string, unknown> = {},
 ): void {
-  if (room.phase !== 'party') return;
+  if (room.phase !== 'party' || room.skipping) return;
   const song = currentSong(room);
   if (!song) return;
+  room.skipping = true;
+  room.dislikeTimers.forEach(clearTimeout); // stop any pending bot pile-on
+  room.dislikeTimers = [];
   if (flush && room.schedule) {
     // host moving on: flush bot reactions so the song isn't artificially cold
     const now = Date.now() - 5000;
@@ -361,7 +368,10 @@ function skipCurrent(
     }
   }
   emitRoom(room, 'songSkipped', { title: song.title, reason, ...extra });
-  advanceAfter(room);
+  setTimeout(() => {
+    room.skipping = false;
+    advanceAfter(room);
+  }, 700);
 }
 
 // ---- dislikes -> auto-skip --------------------------------------

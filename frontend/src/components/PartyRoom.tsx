@@ -45,7 +45,7 @@ interface PartyRoomProps {
   disliked: boolean;
   dislikeCount: number;
   dislikeTotal: number;
-  skipNotice: { title: string; reason: string } | null;
+  skipping: boolean;
 }
 
 export function PartyRoom({
@@ -75,7 +75,7 @@ export function PartyRoom({
   disliked,
   dislikeCount,
   dislikeTotal,
-  skipNotice,
+  skipping,
 }: PartyRoomProps) {
   const [showAdd, setShowAdd] = useState(false);
   const liveSong = songs.find((s) => s.id === current.song.id) ?? current.song;
@@ -89,18 +89,8 @@ export function PartyRoom({
   const host = participants.find((p) => p.isHost);
 
   return (
-    <div className="room2">
+    <div className={'room2' + (skipping ? ' is-skipping' : '')}>
       <AmbientBackground artworkUrl={liveSong.artworkUrl} />
-
-      {skipNotice && (
-        <div className="skip-toast glass" key={skipNotice.title + skipNotice.reason}>
-          <span className="skip-toast-icon">⏭</span>
-          <div className="skip-toast-text">
-            <b>skipped “{skipNotice.title}”</b>
-            <span>{skipNotice.reason}</span>
-          </div>
-        </div>
-      )}
 
       <header className="room2-top">
         <div className="r2-left">
@@ -177,7 +167,7 @@ export function PartyRoom({
         </aside>
 
         <main className="stage">
-          <div className="stage-np">
+          <div className="stage-np" key={liveSong.id}>
             <div className="stage-art">
               <AlbumArt
                 artworkUrl={liveSong.artworkUrl}
@@ -198,7 +188,7 @@ export function PartyRoom({
             </div>
           </div>
 
-          <div className="stage-wave">
+          <div className="stage-wave" key={liveSong.id}>
             <WavePlayer
               song={liveSong}
               frac={liveFrac}

@@ -49,6 +49,7 @@ interface RoomState {
   disliked: boolean; // you disliked the current song
   dislikeCount: number; // total dislikes on the current song
   dislikeTotal: number; // people in the party (denominator)
+  skipping: boolean; // a song is being skipped: stop audio, grey out, fade
 }
 
 const EMPTY: RoomState = {
@@ -69,6 +70,7 @@ const EMPTY: RoomState = {
   disliked: false,
   dislikeCount: 0,
   dislikeTotal: 0,
+  skipping: false,
 };
 
 type Action =
@@ -88,6 +90,7 @@ type Action =
   | { type: 'localChills' }
   | { type: 'dislikeUpdate'; count: number; total: number }
   | { type: 'localDislike'; on: boolean }
+  | { type: 'songSkipped' }
   | { type: 'reset' };
 
 function recompute(song: SongDTO): number {
@@ -116,6 +119,7 @@ function reducer(state: RoomState, action: Action): RoomState {
         disliked: false,
         dislikeCount: 0,
         dislikeTotal: s.participants.length,
+        skipping: false,
       };
     }
     case 'participantJoined': {
@@ -142,9 +146,10 @@ function reducer(state: RoomState, action: Action): RoomState {
         paused: false,
         disliked: false,
         dislikeCount: 0,
+        skipping: false,
       };
     case 'queueExhausted':
-      return { ...state, awaitingMore: true };
+      return { ...state, awaitingMore: true, skipping: false };
     case 'playback':
       return {
         ...state,
@@ -168,6 +173,7 @@ function reducer(state: RoomState, action: Action): RoomState {
         paused: false,
         disliked: false,
         dislikeCount: 0,
+        skipping: false,
       };
     }
     case 'reactionAdded': {
@@ -227,6 +233,8 @@ function reducer(state: RoomState, action: Action): RoomState {
       return { ...state, dislikeCount: action.count, dislikeTotal: action.total };
     case 'localDislike':
       return { ...state, disliked: action.on };
+    case 'songSkipped':
+      return { ...state, skipping: true };
     case 'reset':
       return EMPTY;
     default:
@@ -262,8 +270,11 @@ export function clearCreds() {
 export function useRoom() {
   const [state, dispatch] = useReducer(reducer, EMPTY);
   const [connected, setConnected] = useState(socket.connected);
-  const [skipNotice, setSkipNotice] = useState<{ title: string; reason: string } | null>(null);
-  const skipTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // bumped on each skip so App can fire a fresh toast (sonner owns the lifetime)
+  const [skipEvent, setSkipEvent] = useState<{ title: string; reason: string; n: number } | null>(
+    null,
+  );
+  const skipN = useRef(0);
   const hostTokenRef = useRef<string | null>(loadCreds()?.hostToken ?? null);
 
   // smooth playback clock (server-anchored)
@@ -326,11 +337,10 @@ export function useRoom() {
     socket.on('dislikeUpdate', (d: { count: number; total: number }) =>
       dispatch({ type: 'dislikeUpdate', count: d.count, total: d.total }),
     );
-    // a skip (host or auto) -> show the reason for 10s
+    // a skip (host or auto): freeze + grey the UI, and fire the toast in App
     socket.on('songSkipped', (d: { title: string; reason: string }) => {
-      setSkipNotice({ title: d.title, reason: d.reason });
-      if (skipTimer.current) clearTimeout(skipTimer.current);
-      skipTimer.current = setTimeout(() => setSkipNotice(null), 10000);
+      dispatch({ type: 'songSkipped' });
+      setSkipEvent({ title: d.title, reason: d.reason, n: ++skipN.current });
     });
 
     return () => {
@@ -502,7 +512,7 @@ export function useRoom() {
     connected,
     ...state,
     liveFrac,
-    skipNotice,
+    skipEvent,
     isHost: !!hostTokenRef.current,
     actions: {
       createParty,

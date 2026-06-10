@@ -108,6 +108,7 @@ export interface Room {
   paused: boolean; // host paused playback for everyone
   dislikes: Set<string>; // participants who disliked the current song
   dislikeTimers: NodeJS.Timeout[]; // pending bot pile-on timers
+  skipping: boolean; // brief transition while a skipped song stops + fades out
 }
 
 const byCode = new Map<string, Room>();

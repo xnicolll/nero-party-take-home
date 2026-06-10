@@ -151,6 +151,7 @@ export function Coronation({
                 <div className="rec-art">
                   <AlbumArt artworkUrl={r.artworkUrl} hue={r.hue} size={150} radius={14} />
                   <span className="rec-reason">{r.reason}</span>
+                  <span className="crown-play">▶</span>
                 </div>
                 <div className="rec-meta">
                   <b>{r.title}</b>

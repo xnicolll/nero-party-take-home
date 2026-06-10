@@ -5,6 +5,7 @@
 // (/j/:code) opens the join view.
 // ============================================================
 import { useCallback, useEffect, useState } from 'react';
+import { Toaster, toast } from 'sonner';
 import { loadCreds, useRoom } from './hooks/useRoom';
 import { usePlayback } from './hooks/usePlayback';
 import { Btn, Grain } from './components/atoms';
@@ -40,8 +41,9 @@ function ThemeToggle() {
 
 export default function App() {
   const room = useRoom();
-  // only feed audio while a song is actively playing (stops at intermission/finale)
-  const activeCurrent = room.phase === 'party' && !room.awaitingMore ? room.current : null;
+  // only feed audio while a song is actively playing (stops at skip/intermission/finale)
+  const activeCurrent =
+    room.phase === 'party' && !room.awaitingMore && !room.skipping ? room.current : null;
   const nextUrl = activeCurrent ? (room.songs[activeCurrent.idx + 1]?.streamUrl ?? null) : null;
   const { needsGesture, prime } = usePlayback(activeCurrent, nextUrl, room.paused);
   const [uiPhase, setUiPhase] = useState<'landing' | 'create'>('landing');
@@ -54,6 +56,25 @@ export default function App() {
     if (!joinCode && loadCreds()) room.actions.resume();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // a song was skipped -> top-center toast explaining why, for 10s
+  useEffect(() => {
+    if (!room.skipEvent) return;
+    const { title, reason } = room.skipEvent;
+    toast.custom(
+      () => (
+        <div className="nero-toast">
+          <span className="nero-toast-icon">⏭</span>
+          <div className="nero-toast-text">
+            <b>skipped “{title}”</b>
+            <span>{reason}</span>
+          </div>
+        </div>
+      ),
+      { duration: 10000 },
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [room.skipEvent]);
 
   // The tutorial is taught by scrolling the landing; it's only ever opened
   // on demand via the `?` button, never auto-popped.
@@ -156,7 +177,7 @@ export default function App() {
         disliked={room.disliked}
         dislikeCount={room.dislikeCount}
         dislikeTotal={room.dislikeTotal}
-        skipNotice={room.skipNotice}
+        skipping={room.skipping}
       />
     );
   } else if (room.phase === 'finale' && room.finale) {
@@ -205,6 +226,7 @@ export default function App() {
         </div>
       )}
       {!inParty && <ThemeToggle />}
+      <Toaster position="top-center" toastOptions={{ unstyled: true }} offset={18} />
       <Grain amount={4} />
     </>
   );

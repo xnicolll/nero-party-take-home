@@ -1610,7 +1610,7 @@ html[data-theme='dark'] .nbtn {
 }
 .tut-btns {
   display: flex;
-  gap: 8px;
+  gap: 18px;
   align-items: center;
 }
 .tut-skip {
@@ -1883,8 +1883,8 @@ html[data-theme='dark'] .ambient-img {
 .r2-titles {
   display: flex;
   flex-direction: column;
-  gap: 1px;
-  line-height: 1.1;
+  gap: 5px;
+  line-height: 1.15;
 }
 .r2-name {
   font-family: var(--display);
@@ -2930,15 +2930,30 @@ html[data-theme='dark'] .ambient-img {
   border: none;
   background: transparent;
   color: var(--ink-faint);
-  font-size: 11px;
-  line-height: 1;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+  font-size: 0; /* hide the glyph; we draw a perfectly centred X below */
   opacity: 0;
   transition:
     opacity 0.15s,
-    color 0.15s;
+    color 0.15s,
+    background 0.15s;
+}
+/* crisp, always-centred X (two crossing strokes) */
+.pcard-remove::before,
+.pcard-remove::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 9px;
+  height: 1.5px;
+  border-radius: 1px;
+  background: currentColor;
+}
+.pcard-remove::before {
+  transform: translate(-50%, -50%) rotate(45deg);
+}
+.pcard-remove::after {
+  transform: translate(-50%, -50%) rotate(-45deg);
 }
 .pcard:hover .pcard-remove {
   opacity: 1;
@@ -3128,57 +3143,38 @@ html[data-theme='dark'] .ambient-img {
   background: rgba(255, 255, 255, 0.26);
 }
 
-/* skip reason toast (shows for 10s, fades itself near the end) */
-.skip-toast {
-  position: absolute;
-  top: 78px;
-  left: 50%;
-  z-index: 40;
+/* skip reason toast - rendered by sonner (top-center), our own glass pill */
+.nero-toast {
   display: flex;
   align-items: center;
   gap: 12px;
-  max-width: 460px;
-  padding: 11px 18px;
+  max-width: 440px;
+  padding: 12px 18px;
   border-radius: 16px;
   border: 1px solid var(--line);
-  animation:
-    skipToastIn 0.5s var(--ease-spring),
-    skipToastOut 0.6s ease 9.4s forwards;
+  background: color-mix(in oklab, var(--panel) 90%, transparent);
+  backdrop-filter: blur(14px) saturate(1.2);
+  box-shadow: var(--shadow);
 }
-.skip-toast-icon {
+.nero-toast-icon {
   font-size: 19px;
+  flex: none;
 }
-.skip-toast-text {
+.nero-toast-text {
   display: flex;
   flex-direction: column;
   gap: 2px;
   min-width: 0;
 }
-.skip-toast-text b {
+.nero-toast-text b {
   font-size: 13px;
   color: var(--ink);
 }
-.skip-toast-text span {
+.nero-toast-text span {
   font-family: var(--mono);
   font-size: 10.5px;
   letter-spacing: 0.03em;
   color: var(--ink-dim);
-}
-@keyframes skipToastIn {
-  from {
-    opacity: 0;
-    transform: translate(-50%, -14px);
-  }
-  to {
-    opacity: 1;
-    transform: translate(-50%, 0);
-  }
-}
-@keyframes skipToastOut {
-  to {
-    opacity: 0;
-    transform: translate(-50%, -10px);
-  }
 }
 
 /* create: the rest of the rules ease out when names are cleared */
@@ -3190,4 +3186,41 @@ html[data-theme='dark'] .ambient-img {
     opacity: 0;
     transform: translateY(12px);
   }
+}
+
+/* ============================================================
+   v11 - skip transition (grey + fade), song fade-in, rec hover
+   ============================================================ */
+
+/* a skipped song stops + greys out + fades, then the next fades in */
+.stage-np,
+.stage-wave {
+  transition: filter 0.45s var(--ease-damp);
+}
+.room2.is-skipping .stage-np,
+.room2.is-skipping .stage-wave {
+  filter: grayscale(1) opacity(0.45);
+}
+.room2.is-skipping .ambient-img {
+  filter: grayscale(1) brightness(0.7);
+  transition: filter 0.45s var(--ease-damp);
+}
+/* each new song's art + wave fade in (so a skip resolves into the next) */
+.stage-np {
+  animation: songIn 0.5s var(--ease-damp);
+}
+@keyframes songIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+/* recs get the same darker-tint + play hover as the crowns */
+.rec-art .crown-play {
+  border-radius: 14px;
+  font-size: 26px;
+}
+.rec-card:hover .crown-play {
+  opacity: 1;
 }
