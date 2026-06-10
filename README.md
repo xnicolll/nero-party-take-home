@@ -57,19 +57,19 @@ npm run kill   # or: lsof -ti:3000,5173 | xargs kill -9
 - **Waveforms** — synthesized deterministically per track id (Audius ships none); also drives bot timing + clip start
 
 backend/src
-├── index.ts            # express + socket.io
-├── room/               # in-memory state, tick engine, bots
-├── ranking.ts          # heat / sync / results
-├── finale.ts           # playoff bracket
-├── services/audius.ts  # search / trending / stream
-├── sockets/            # handlers + DTO mappers
-└── lib/                # prng, waveform, join codes
+├── index.ts # express + socket.io
+├── room/ # in-memory state, tick engine, bots
+├── ranking.ts # heat / sync / results
+├── finale.ts # playoff bracket
+├── services/audius.ts # search / trending / stream
+├── sockets/ # handlers + DTO mappers
+└── lib/ # prng, waveform, join codes
 frontend/src
-├── App.tsx             # phase machine
-├── hooks/useRoom.ts    # socket-driven state
-├── hooks/usePlayback   # one <audio>, server-anchored seek
-├── components/         # screens + visual atoms
-└── index.css           # design system
+├── App.tsx # phase machine
+├── hooks/useRoom.ts # socket-driven state
+├── hooks/usePlayback # one <audio>, server-anchored seek
+├── components/ # screens + visual atoms
+└── index.css # design system
 
 ## Formatting
 
