@@ -1,5 +1,5 @@
 // ============================================================
-// NERO PARTY — useRoom: socket-driven party state
+// NERO PARTY - useRoom: socket-driven party state
 // Holds the latest snapshot and folds in live deltas (reactions, syncs,
 // leaderboard, song changes, finale). Replaces the design's local useParty.
 // ============================================================

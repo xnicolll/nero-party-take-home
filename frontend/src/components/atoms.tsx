@@ -1,5 +1,5 @@
 // ============================================================
-// NERO PARTY — shared visual atoms (ported from nero-ui.jsx)
+// NERO PARTY - shared visual atoms (ported from nero-ui.jsx)
 // ============================================================
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { REACTIONS, mulberry32 } from '../lib/nero';
@@ -193,7 +193,7 @@ export function HeatShape({
   );
 }
 
-// Parallax speck field — 3 layers, mouse + scroll (ported from nero-lobby.jsx).
+// Parallax speck field - 3 layers, mouse + scroll (ported from nero-lobby.jsx).
 export function StarField() {
   const wrap = useRef<HTMLDivElement>(null);
   const layers = useMemo(() => {

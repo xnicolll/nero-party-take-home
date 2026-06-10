@@ -11,7 +11,7 @@ export interface Peak {
 // pins against the same waveform.
 export function synthPeaks(audiusId: string, durationSec: number): Peak[] {
   const rnd = mulberry32(seedFromId(audiusId) + durationSec);
-  const n = 1 + Math.floor(rnd() * 2); // 1–2 peak zones
+  const n = 1 + Math.floor(rnd() * 2); // 1-2 peak zones
   const peaks: Peak[] = [];
   for (let i = 0; i < n; i++) {
     peaks.push({ c: 0.25 + rnd() * 0.6, w: 0.04 + rnd() * 0.05 });
@@ -19,7 +19,7 @@ export function synthPeaks(audiusId: string, durationSec: number): Peak[] {
   return peaks.sort((a, b) => a.c - b.c);
 }
 
-// Seeded waveform bars, taller inside peak zones — verbatim shape from the
+// Seeded waveform bars, taller inside peak zones - verbatim shape from the
 // design's nero-data.js `waveform()`. The client regenerates these for render;
 // the server uses peaks (not bars) for logic.
 export function waveform(audiusId: string, peaks: Peak[], n = 110): number[] {

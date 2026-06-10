@@ -1,5 +1,5 @@
 // ============================================================
-// NERO PARTY — bot helpers (pure)
+// NERO PARTY - bot helpers (pure)
 // Ported from the design's buildSchedule. Bots cluster reactions near peaks so
 // real "syncs" happen at the drop. The engine owns the join timers + DB writes.
 // ============================================================
@@ -23,7 +23,7 @@ export function buildSchedule(
   const rnd = mulberry32(seedDur * 131 + seedOffset);
   const evts: BotScheduleEvent[] = [];
   botIds.forEach((fid) => {
-    const count = 2 + Math.floor(rnd() * 3); // 2–4 reactions
+    const count = 2 + Math.floor(rnd() * 3); // 2-4 reactions
     for (let k = 0; k < count; k++) {
       let t: number;
       let type: ReactionType;

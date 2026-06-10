@@ -1,5 +1,5 @@
 // ============================================================
-// NERO PARTY — lobby: flat orb, real participants orbit in (no connectors)
+// NERO PARTY - lobby: flat orb, real participants orbit in (no connectors)
 // Ported from nero-lobby.jsx; nodes now come from the live snapshot.
 // ============================================================
 import { useEffect, useRef, useState } from 'react';

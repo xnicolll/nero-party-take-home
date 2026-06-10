@@ -1,5 +1,5 @@
 // ============================================================
-// NERO PARTY — landing: one path. scroll -> learn -> start.
+// NERO PARTY - landing: one path. scroll -> learn -> start.
 // Ported from the design's nero-lobby.jsx (StarField/FilmStrip/CycleWord).
 // ============================================================
 import { useEffect, useRef, useState } from 'react';

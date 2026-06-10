@@ -1,8 +1,8 @@
 // ============================================================
-// NERO PARTY — Audius music service
+// NERO PARTY - Audius music service
 // No API key required; every call carries app_name. We proxy search/trending
 // (keeps app_name server-side, normalizes fields). The client plays the direct
-// stream URL — Audius 302-redirects it to a CORS-`*` audio file.
+// stream URL - Audius 302-redirects it to a CORS-`*` audio file.
 // ============================================================
 import { env } from '../env.js';
 import { hueFromId } from '../lib/prng.js';

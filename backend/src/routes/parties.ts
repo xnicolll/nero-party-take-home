@@ -4,7 +4,7 @@ import { getRoomByCode } from '../room/state.js';
 
 export const partiesRouter = Router();
 
-// GET /api/parties/:code — does this party exist + what phase? (share-link landing)
+// GET /api/parties/:code - does this party exist + what phase? (share-link landing)
 partiesRouter.get('/:code', async (req, res) => {
   const code = String(req.params.code).toUpperCase();
   const room = getRoomByCode(code);

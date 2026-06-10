@@ -1,5 +1,5 @@
 // ============================================================
-// NERO PARTY — finale playoff state machine
+// NERO PARTY - finale playoff state machine
 // Port of nero-finale.jsx's bracket logic. Top heat-moments battle 1v1;
 // humans vote via castVote, bots vote on a stagger; majority advances.
 // Engine owns timers + crowning; this file owns the pure transitions.

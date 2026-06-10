@@ -1,5 +1,5 @@
 // ============================================================
-// NERO PARTY — party-room widgets (ported from nero-widgets.jsx)
+// NERO PARTY - party-room widgets (ported from nero-widgets.jsx)
 // Now read socket-fed state instead of the local simulation.
 // ============================================================
 import { useEffect, useMemo, useRef } from 'react';
@@ -98,7 +98,7 @@ export function ReactionBar({
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.repeat) return;
-      // space = chills (the scarce one) — react without looking
+      // space = chills (the scarce one) - react without looking
       if (e.code === 'Space' || e.key === ' ') {
         e.preventDefault();
         onReact('chills');
@@ -181,7 +181,7 @@ export function PlaylistRail({ songs, currentId }: { songs: SongDTO[]; currentId
               style={{ transform: `translateY(${pos * RROW}px)`, animationDelay: `${i * 0.04}s` }}
             >
               <span className="pcard-rank mono">
-                {active ? String(pos + 1).padStart(2, '0') : '–'}
+                {active ? String(pos + 1).padStart(2, '0') : '-'}
               </span>
               <span className={'pcard-delta' + (mv > 0 ? ' up' : mv < 0 ? ' down' : '')}>
                 {mv > 0 ? '▲' : mv < 0 ? '▼' : ''}

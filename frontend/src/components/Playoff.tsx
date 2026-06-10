@@ -1,5 +1,5 @@
 // ============================================================
-// NERO PARTY — finale playoff (ported from nero-finale.jsx)
+// NERO PARTY - finale playoff (ported from nero-finale.jsx)
 // Server runs the bracket + bot votes; the client renders + casts one vote.
 // ============================================================
 import { useEffect, useRef, useState } from 'react';
@@ -139,7 +139,7 @@ export function Playoff({ finale, onVote }: { finale: FinaleState; onVote: (s: 0
       <h2 className="playoff-title">Which moment hit harder?</h2>
       <p className="playoff-sub">
         {picked == null && decided == null
-          ? 'Cast your vote — the room follows.'
+          ? 'Cast your vote - the room follows.'
           : decided != null
             ? 'Decided.'
             : 'The room is voting…'}

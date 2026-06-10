@@ -1,5 +1,5 @@
 // ============================================================
-// NERO PARTY — shared DTOs + socket event payloads
+// NERO PARTY - shared DTOs + socket event payloads
 // Mirrored on the frontend (frontend/src/lib/types.ts).
 // ============================================================
 import type { ReactionType } from './constants.js';

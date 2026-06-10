@@ -1,5 +1,5 @@
 // ============================================================
-// NERO PARTY — join via share link (/j/:code)
+// NERO PARTY - join via share link (/j/:code)
 // ============================================================
 import { useEffect, useState } from 'react';
 import { API_BASE } from '../lib/nero';

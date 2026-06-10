@@ -1,5 +1,5 @@
 // ============================================================
-// NERO PARTY — Modal: silky open/close (delayed unmount + exit animation)
+// NERO PARTY - Modal: silky open/close (delayed unmount + exit animation)
 // Captures the last children while open so the content stays put during the
 // close animation, even when the parent clears its state immediately.
 // ============================================================

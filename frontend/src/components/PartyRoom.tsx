@@ -1,5 +1,5 @@
 // ============================================================
-// NERO PARTY — party room v2
+// NERO PARTY - party room v2
 // A clean surface: ambient blurred album art, the waveform vertically central,
 // the playlist as racing glass cards on the left (queue + live standings in one),
 // real album art, and a top-left + that takes the playlist side over for search.
@@ -186,7 +186,7 @@ export function PartyRoom({
             <ReactionBar onReact={onReact} chillsLeft={chillsLeft} />
           </div>
           <p className="stage-keys mono">
-            react without looking — keys 1–4, space for chills. music is meant to be enjoyed, not
+            react without looking - keys 1-4, space for chills. music is meant to be enjoyed, not
             stared at.
           </p>
 
@@ -215,7 +215,7 @@ export function PartyRoom({
                 ? 'paused by host'
                 : isHost
                   ? 'you control playback'
-                  : 'tap a feeling · keys 1–5'}
+                  : 'tap a feeling · keys 1-5'}
             </span>
           </div>
         </main>

@@ -1,5 +1,5 @@
 // ============================================================
-// NERO PARTY — search Audius + add to the queue
+// NERO PARTY - search Audius + add to the queue
 // ============================================================
 import { useEffect, useRef, useState } from 'react';
 import { fmtTime } from '../lib/nero';

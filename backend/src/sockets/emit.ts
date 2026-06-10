@@ -1,5 +1,5 @@
 // ============================================================
-// NERO PARTY — DTO mappers + emit helpers
+// NERO PARTY - DTO mappers + emit helpers
 // Maps in-memory runtime objects to the wire DTOs in types.ts.
 // ============================================================
 import { computeResults, topGlyph } from '../ranking.js';

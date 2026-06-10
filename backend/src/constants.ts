@@ -1,5 +1,5 @@
 // ============================================================
-// NERO PARTY — shared constants (reaction vocab, lanes, bots)
+// NERO PARTY - shared constants (reaction vocab, lanes, bots)
 // Ported from the design's nero-data.js so client + server agree.
 // ============================================================
 

@@ -1,5 +1,5 @@
 // ============================================================
-// NERO PARTY — create party (content on the surface, no hero card)
+// NERO PARTY - create party (content on the surface, no hero card)
 // Soundwave selectors, host name, less-"AI" pills.
 // ============================================================
 import { useState } from 'react';
@@ -104,7 +104,7 @@ export function CreateParty({
 
         <div className="fld">
           <span className="fld-label">
-            genre lane <i className="fld-note">— songs compete against equals</i>
+            genre lane <i className="fld-note">- songs compete against equals</i>
           </span>
           <div className="lane-row">
             {LANES.map((l) => (
@@ -121,7 +121,7 @@ export function CreateParty({
 
         <div className="fld">
           <span className="fld-label">
-            song length <i className="fld-note">— clip keeps the party moving</i>
+            song length <i className="fld-note">- clip keeps the party moving</i>
           </span>
           <div className="lane-row">
             <button

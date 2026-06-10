@@ -1,5 +1,5 @@
 // ============================================================
-// NERO PARTY — authoritative engine
+// NERO PARTY - authoritative engine
 // The server is the clock. One tick loop per room advances playback, fires bot
 // reactions, races the leaderboard, and drives finale -> coronation.
 // ============================================================
@@ -217,7 +217,7 @@ function doReaction(
   const res = addReaction(room, song, participantId, type, frac, now);
   const p = room.participants.get(participantId);
   const def = REACTIONS[type];
-  // persist the event (fire and forget — heat is the in-memory projection)
+  // persist the event (fire and forget - heat is the in-memory projection)
   prisma.reaction
     .create({
       data: {
@@ -382,7 +382,7 @@ function emitQueue(room: Room): void {
 }
 
 // Seed the queue from trending by the party's genre. Keep durations sane
-// (1–7 min) so `full` mode isn't a 60-minute track. Emits the queue so clients
+// (1-7 min) so `full` mode isn't a 60-minute track. Emits the queue so clients
 // see it. Used to auto-load songs in the lobby and to top up at start.
 export async function seedQueue(room: Room, count = room.maxSongs): Promise<void> {
   const slots = Math.max(0, Math.min(count, room.maxSongs - room.songs.length));
@@ -459,14 +459,14 @@ export async function startParty(room: Room): Promise<{ ok: boolean; reason?: st
   return { ok: true };
 }
 
-// Host pauses playback for everyone — the clock + reactions freeze.
+// Host pauses playback for everyone - the clock + reactions freeze.
 export function hostPause(room: Room): void {
   if (room.phase !== 'party' || room.paused) return;
   room.paused = true;
   emitRoom(room, 'playback', { paused: true, positionMs: room.positionMs, serverTime: Date.now() });
 }
 
-// Host resumes — position continues from where it froze.
+// Host resumes - position continues from where it froze.
 export function hostResume(room: Room): void {
   if (room.phase !== 'party' || !room.paused) return;
   room.paused = false;

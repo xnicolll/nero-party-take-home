@@ -1,5 +1,5 @@
 // ============================================================
-// NERO PARTY — coronation
+// NERO PARTY - coronation
 // A brief "moment of truth" reveal in the same light UI (no dark/storm), then
 // the crowns. Song + Moment of the Night are playable, like the suggestions.
 // ============================================================

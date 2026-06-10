@@ -1,4 +1,4 @@
-// Seeded PRNG — verbatim from the design's nero-data.js so the server and the
+// Seeded PRNG - verbatim from the design's nero-data.js so the server and the
 // browser generate identical waveforms/peaks from the same seed.
 export function mulberry32(seed: number): () => number {
   let a = seed >>> 0;

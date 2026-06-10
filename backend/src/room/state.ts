@@ -1,5 +1,5 @@
 // ============================================================
-// NERO PARTY — in-memory room state (the authoritative live party)
+// NERO PARTY - in-memory room state (the authoritative live party)
 // One Room per active party. Durable facts live in SQLite; the hot path
 // (heat, position, sync window, bot schedules) lives here.
 // ============================================================

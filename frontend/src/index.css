@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 /* ============================================================
-   NERO PARTY — design system (ported verbatim from the Claude
+   NERO PARTY - design system (ported verbatim from the Claude
    Design handoff). Light "after-hours analog" theme, ember accent,
    Bricolage display + IBM Plex Mono, OKLCH reaction colors, grain.
    ============================================================ */
@@ -1787,7 +1787,7 @@ html[data-theme='dark'] .nbtn {
 }
 
 /* ============================================================
-   v2 — glass, ambient album art, restructured party room,
+   v2 - glass, ambient album art, restructured party room,
    landing scroll spine + nav swoop, premium easing
    ============================================================ */
 :root {
@@ -2075,7 +2075,7 @@ html[data-theme='dark'] .ambient-img {
   align-items: center;
 }
 
-/* center stage — album art + waveform vertically central */
+/* center stage - album art + waveform vertically central */
 .stage {
   flex: 1;
   display: flex;
@@ -2300,7 +2300,7 @@ html[data-theme='dark'] .ambient-img {
 }
 
 /* ============================================================
-   v3 — contrast + readability, intermission, host marker,
+   v3 - contrast + readability, intermission, host marker,
    calmer buttons, de-carded surfaces, spine wall, wave selector
    ============================================================ */
 
@@ -2318,7 +2318,7 @@ html[data-theme='dark'] .ambient-img {
   background: color-mix(in oklab, var(--panel) 80%, transparent);
 }
 
-/* buttons: change colour only — no lift, no shadow (per request) */
+/* buttons: change colour only - no lift, no shadow (per request) */
 .nbtn:hover:not(:disabled),
 .nbtn:active:not(:disabled) {
   transform: none;
@@ -2468,7 +2468,7 @@ html[data-theme='dark'] .ambient-img {
 .scroll-spine {
   z-index: 41;
 }
-/* spine + filmstrip track exactly with scroll — no lagging transitions */
+/* spine + filmstrip track exactly with scroll - no lagging transitions */
 .spine-fill,
 .spine-node {
   transition: none;
@@ -2573,7 +2573,7 @@ html[data-theme='dark'] .ambient-img {
 }
 
 /* ============================================================
-   v4 — transport, flatter cards, hard spine, modal transitions
+   v4 - transport, flatter cards, hard spine, modal transitions
    ============================================================ */
 
 /* transport (play / pause / skip) under the reactions */
@@ -2620,7 +2620,7 @@ html[data-theme='dark'] .ambient-img {
   border-color: var(--rc);
 }
 
-/* queue cards sit flat on the surface — no frosted halo behind them */
+/* queue cards sit flat on the surface - no frosted halo behind them */
 .pcard {
   backdrop-filter: none;
   background: color-mix(in oklab, var(--panel) 88%, transparent);
@@ -2630,7 +2630,7 @@ html[data-theme='dark'] .ambient-img {
   box-shadow: 0 0 0 1px color-mix(in oklab, var(--accent) 35%, transparent);
 }
 
-/* spine is a hard wall — cards vanish the instant they cross it, no fade */
+/* spine is a hard wall - cards vanish the instant they cross it, no fade */
 .spine-mask {
   background: var(--bg);
   width: 45px;
@@ -2747,7 +2747,7 @@ html[data-theme='dark'] .ambient-img {
 }
 
 /* ============================================================
-   v5 — fix ambient painting over content; transport state
+   v5 - fix ambient painting over content; transport state
    ============================================================ */
 /* the ambient is a positioned z:0 layer; without this it paints ABOVE the
    non-positioned room content. Pin content above it explicitly. */
@@ -2785,7 +2785,7 @@ html[data-theme='dark'] .ambient-img {
 }
 
 /* ============================================================
-   v6 — keyboard hint, vertical taps list, light reveal, playable crowns
+   v6 - keyboard hint, vertical taps list, light reveal, playable crowns
    ============================================================ */
 .stage-keys {
   font-size: 10px;
@@ -2825,7 +2825,7 @@ html[data-theme='dark'] .ambient-img {
   font-style: normal;
 }
 
-/* coronation reveal — same light UI, no dark/storm */
+/* coronation reveal - same light UI, no dark/storm */
 .coro-reveal {
   gap: 14px;
 }
@@ -2884,7 +2884,7 @@ html[data-theme='dark'] .ambient-img {
 }
 
 /* ============================================================
-   v7 — keep stat values on one line; leave confirmation
+   v7 - keep stat values on one line; leave confirmation
    ============================================================ */
 .stat-chip b {
   white-space: nowrap;

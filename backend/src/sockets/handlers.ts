@@ -1,5 +1,5 @@
 // ============================================================
-// NERO PARTY — socket handlers (client <-> engine glue)
+// NERO PARTY - socket handlers (client <-> engine glue)
 // ============================================================
 import { randomUUID } from 'crypto';
 import type { Server, Socket } from 'socket.io';

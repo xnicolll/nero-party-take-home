@@ -1,5 +1,5 @@
 // ============================================================
-// NERO PARTY — app shell + phase machine
+// NERO PARTY - app shell + phase machine
 // landing -> create -> lobby -> party -> finale -> coronation
 // Phases after joining follow the server (room.phase); the share link
 // (/j/:code) opens the join view.

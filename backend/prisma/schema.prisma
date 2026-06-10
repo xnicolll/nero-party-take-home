@@ -8,7 +8,7 @@ datasource db {
 }
 
 // A listening party. `joinCode` is the shareable handle (e.g. EMBER-4417).
-// Live state (heat, position, sync window) is NOT stored here — it lives in the
+// Live state (heat, position, sync window) is NOT stored here - it lives in the
 // in-memory Room object. SQLite holds only durable facts.
 model Party {
   id             String   @id @default(cuid())

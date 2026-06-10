@@ -1,5 +1,5 @@
 // ============================================================
-// NERO PARTY — heat / sync / results algorithm
+// NERO PARTY - heat / sync / results algorithm
 // Verbatim port of the design's nero-room.jsx, moved server-side so every
 // client and bot agrees. Heat is normalized per-minute so long songs don't
 // auto-win; 3+ distinct people within 1.6s = a "sync" bonus.

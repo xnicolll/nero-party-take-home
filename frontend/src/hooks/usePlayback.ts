@@ -1,5 +1,5 @@
 // ============================================================
-// NERO PARTY — usePlayback
+// NERO PARTY - usePlayback
 // Server is the clock. New songs pre-buffer (so the gate plays instantly),
 // fade in/out, preload the next track, and follow the room's global paused
 // flag so play/pause/skip are real-time for everyone. Resumes on tab return.
@@ -176,7 +176,7 @@ export function usePlayback(current: CurrentDTO | null, nextUrl?: string | null,
     }
   }, [paused, seekAndPlay, fadeTo]);
 
-  // returning to the tab can suspend audio — resync
+  // returning to the tab can suspend audio - resync
   useEffect(() => {
     const resync = () => {
       if (document.visibilityState !== 'visible') return;

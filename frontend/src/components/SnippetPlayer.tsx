@@ -1,5 +1,5 @@
 // ============================================================
-// NERO PARTY — snippet preview card (rendered inside a <Modal>)
+// NERO PARTY - snippet preview card (rendered inside a <Modal>)
 // Plays ~12s from a representative point (or a given start), eager artwork.
 // ============================================================
 import { useEffect, useRef } from 'react';
