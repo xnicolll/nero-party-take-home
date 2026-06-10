@@ -129,6 +129,8 @@ export function createRoom(
     emptySince: null,
     awaitingMore: false,
     paused: false,
+    dislikes: new Set(),
+    dislikeTimers: [],
   };
   registerRoom(room);
   return room;
@@ -271,6 +273,9 @@ function startSong(room: Room): void {
   room.frac = 0;
   room.positionMs = 0;
   room.recent = [];
+  room.dislikes = new Set();
+  room.dislikeTimers.forEach(clearTimeout);
+  room.dislikeTimers = [];
 
   // iTunes serves ~30s previews, so the preview IS the playable window: play it
   // from the start, no seeking.
@@ -319,15 +324,87 @@ function tick(room: Room): void {
   }
 
   // song end -> next, or pause for the host to add more / finish
-  if (room.positionMs >= room.effectiveDurationMs) {
+  if (room.positionMs >= room.effectiveDurationMs) advanceAfter(room);
+}
+
+// mark the current song played, then move to the next or pause for more
+function advanceAfter(room: Room): void {
+  const song = currentSong(room);
+  if (song) {
     song.played = true;
     prisma.queuedSong.update({ where: { id: song.id }, data: { played: true } }).catch(() => {});
-    if (room.idx + 1 < room.songs.length) {
-      room.idx += 1;
-      startSong(room);
-    } else {
-      pauseForMore(room);
+  }
+  if (room.idx + 1 < room.songs.length) {
+    room.idx += 1;
+    startSong(room);
+  } else {
+    pauseForMore(room);
+  }
+}
+
+// skip the current song with a reason broadcast for the 10s toast
+function skipCurrent(
+  room: Room,
+  reason: string,
+  flush: boolean,
+  extra: Record<string, unknown> = {},
+): void {
+  if (room.phase !== 'party') return;
+  const song = currentSong(room);
+  if (!song) return;
+  if (flush && room.schedule) {
+    // host moving on: flush bot reactions so the song isn't artificially cold
+    const now = Date.now() - 5000;
+    while (room.cursor < room.schedule.length) {
+      const e = room.schedule[room.cursor++];
+      doReaction(room, song, e.participantId, e.type, e.t, now, true);
     }
+  }
+  emitRoom(room, 'songSkipped', { title: song.title, reason, ...extra });
+  advanceAfter(room);
+}
+
+// ---- dislikes -> auto-skip --------------------------------------
+export function setDislike(room: Room, participantId: string, on: boolean): void {
+  if (room.phase !== 'party' || room.paused) return;
+  const p = room.participants.get(participantId);
+  if (!p) return;
+  if (on) room.dislikes.add(participantId);
+  else room.dislikes.delete(participantId);
+  emitRoom(room, 'dislikeUpdate', { count: room.dislikes.size, total: room.participants.size });
+  if (on && !p.isBot) rallyBots(room); // a human dislike rallies the room
+  checkDislikeSkip(room);
+}
+
+function rallyBots(room: Room): void {
+  const myIdx = room.idx;
+  for (const part of room.participants.values()) {
+    if (!part.isBot || room.dislikes.has(part.id)) continue;
+    if (Math.random() > 0.55) continue; // only some bots agree
+    const timer = setTimeout(
+      () => {
+        if (room.phase !== 'party' || room.idx !== myIdx || room.dislikes.has(part.id)) return;
+        room.dislikes.add(part.id);
+        emitRoom(room, 'dislikeUpdate', {
+          count: room.dislikes.size,
+          total: room.participants.size,
+        });
+        checkDislikeSkip(room);
+      },
+      600 + Math.floor(Math.random() * 1400),
+    );
+    room.dislikeTimers.push(timer);
+  }
+}
+
+function checkDislikeSkip(room: Room): void {
+  if (room.phase !== 'party') return;
+  // more than half the party disliked it -> skip
+  if (room.dislikes.size > room.participants.size / 2) {
+    skipCurrent(room, 'most of the room disliked it', false, {
+      dislikes: room.dislikes.size,
+      total: room.participants.size,
+    });
   }
 }
 
@@ -451,25 +528,7 @@ export function hostResume(room: Room): void {
 }
 
 export function hostSkip(room: Room): void {
-  if (room.phase !== 'party') return;
-  const song = currentSong(room);
-  if (!song) return;
-  // flush remaining bot reactions (backdated) so a skipped song isn't cold
-  if (room.schedule) {
-    const now = Date.now() - 5000;
-    while (room.cursor < room.schedule.length) {
-      const e = room.schedule[room.cursor++];
-      doReaction(room, song, e.participantId, e.type, e.t, now, true);
-    }
-  }
-  song.played = true;
-  prisma.queuedSong.update({ where: { id: song.id }, data: { played: true } }).catch(() => {});
-  if (room.idx + 1 < room.songs.length) {
-    room.idx += 1;
-    startSong(room);
-  } else {
-    enterFinale(room);
-  }
+  skipCurrent(room, 'skipped by the host', true);
 }
 
 export function hostEnd(room: Room): void {

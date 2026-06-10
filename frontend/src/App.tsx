@@ -152,6 +152,11 @@ export default function App() {
         search={room.actions.searchTracks}
         add={room.actions.addSong}
         onRemove={room.actions.removeSong}
+        onDislike={room.actions.dislike}
+        disliked={room.disliked}
+        dislikeCount={room.dislikeCount}
+        dislikeTotal={room.dislikeTotal}
+        skipNotice={room.skipNotice}
       />
     );
   } else if (room.phase === 'finale' && room.finale) {

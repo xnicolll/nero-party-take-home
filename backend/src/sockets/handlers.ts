@@ -20,6 +20,7 @@ import {
   hostSkip,
   humanReact,
   removeSong,
+  setDislike,
   startParty,
 } from '../room/engine.js';
 import { toSnapshot } from './emit.js';
@@ -208,6 +209,13 @@ export function registerSocketHandlers(io: Server): void {
       if (!room) return;
       if (!isReactionType(payload?.type)) return;
       humanReact(room, (socket.data as SocketData).participantId, payload.type);
+    });
+
+    // ---- dislike the current song (toggle) ----
+    socket.on('dislike', (payload: any) => {
+      const room = roomFromSocket(socket);
+      if (!room) return;
+      setDislike(room, (socket.data as SocketData).participantId, payload?.on !== false);
     });
 
     // ---- host: start ----

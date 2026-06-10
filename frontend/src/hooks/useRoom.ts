@@ -46,6 +46,9 @@ interface RoomState {
   bursts: Burst[];
   awaitingMore: boolean; // queue exhausted, host deciding
   paused: boolean; // host paused playback for everyone
+  disliked: boolean; // you disliked the current song
+  dislikeCount: number; // total dislikes on the current song
+  dislikeTotal: number; // people in the party (denominator)
 }
 
 const EMPTY: RoomState = {
@@ -63,6 +66,9 @@ const EMPTY: RoomState = {
   bursts: [],
   awaitingMore: false,
   paused: false,
+  disliked: false,
+  dislikeCount: 0,
+  dislikeTotal: 0,
 };
 
 type Action =
@@ -80,6 +86,8 @@ type Action =
   | { type: 'queueExhausted' }
   | { type: 'playback'; paused: boolean; serverTime: number; positionMs: number }
   | { type: 'localChills' }
+  | { type: 'dislikeUpdate'; count: number; total: number }
+  | { type: 'localDislike'; on: boolean }
   | { type: 'reset' };
 
 function recompute(song: SongDTO): number {
@@ -105,6 +113,9 @@ function reducer(state: RoomState, action: Action): RoomState {
         bursts: [],
         awaitingMore: s.awaitingMore,
         paused: s.paused,
+        disliked: false,
+        dislikeCount: 0,
+        dislikeTotal: s.participants.length,
       };
     }
     case 'participantJoined': {
@@ -124,7 +135,14 @@ function reducer(state: RoomState, action: Action): RoomState {
     case 'queueUpdated':
       return { ...state, songs: action.songs };
     case 'phaseChanged':
-      return { ...state, phase: action.phase, awaitingMore: false, paused: false };
+      return {
+        ...state,
+        phase: action.phase,
+        awaitingMore: false,
+        paused: false,
+        disliked: false,
+        dislikeCount: 0,
+      };
     case 'queueExhausted':
       return { ...state, awaitingMore: true };
     case 'playback':
@@ -148,6 +166,8 @@ function reducer(state: RoomState, action: Action): RoomState {
         bursts: [],
         awaitingMore: false,
         paused: false,
+        disliked: false,
+        dislikeCount: 0,
       };
     }
     case 'reactionAdded': {
@@ -203,6 +223,10 @@ function reducer(state: RoomState, action: Action): RoomState {
       return state.you
         ? { ...state, you: { ...state.you, chillsLeft: Math.max(0, state.you.chillsLeft - 1) } }
         : state;
+    case 'dislikeUpdate':
+      return { ...state, dislikeCount: action.count, dislikeTotal: action.total };
+    case 'localDislike':
+      return { ...state, disliked: action.on };
     case 'reset':
       return EMPTY;
     default:
@@ -238,6 +262,8 @@ export function clearCreds() {
 export function useRoom() {
   const [state, dispatch] = useReducer(reducer, EMPTY);
   const [connected, setConnected] = useState(socket.connected);
+  const [skipNotice, setSkipNotice] = useState<{ title: string; reason: string } | null>(null);
+  const skipTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hostTokenRef = useRef<string | null>(loadCreds()?.hostToken ?? null);
 
   // smooth playback clock (server-anchored)
@@ -297,6 +323,15 @@ export function useRoom() {
     socket.on('tick', (d: { positionMs: number; serverTime: number }) =>
       setAnchor(d.serverTime, d.positionMs, anchor.current.effDur),
     );
+    socket.on('dislikeUpdate', (d: { count: number; total: number }) =>
+      dispatch({ type: 'dislikeUpdate', count: d.count, total: d.total }),
+    );
+    // a skip (host or auto) -> show the reason for 10s
+    socket.on('songSkipped', (d: { title: string; reason: string }) => {
+      setSkipNotice({ title: d.title, reason: d.reason });
+      if (skipTimer.current) clearTimeout(skipTimer.current);
+      skipTimer.current = setTimeout(() => setSkipNotice(null), 10000);
+    });
 
     return () => {
       socket.off('connect', onConnect);
@@ -314,6 +349,8 @@ export function useRoom() {
       socket.off('queueExhausted');
       socket.off('playback');
       socket.off('tick');
+      socket.off('dislikeUpdate');
+      socket.off('songSkipped');
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -428,6 +465,10 @@ export function useRoom() {
     if (type === 'chills') dispatch({ type: 'localChills' });
     socket.emit('react', { type });
   }, []);
+  const dislike = useCallback((on: boolean) => {
+    dispatch({ type: 'localDislike', on });
+    socket.emit('dislike', { on });
+  }, []);
   const start = useCallback(
     () => emitAck<any>('startParty', { hostToken: hostTokenRef.current }),
     [],
@@ -461,6 +502,7 @@ export function useRoom() {
     connected,
     ...state,
     liveFrac,
+    skipNotice,
     isHost: !!hostTokenRef.current,
     actions: {
       createParty,
@@ -470,6 +512,7 @@ export function useRoom() {
       addSong,
       removeSong,
       react,
+      dislike,
       start,
       skip,
       end,

@@ -2,7 +2,7 @@
 // NERO PARTY - create party. Progressive reveal: names first, then genre,
 // then song limit + chills, each easing in once the previous is done.
 // ============================================================
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { LANES } from '../lib/nero';
 import { Btn, Eyebrow } from './atoms';
 
@@ -72,6 +72,21 @@ export function CreateParty({
   const nameErr = touched && !name.trim();
   const hostErr = touched && !hostName.trim();
 
+  // keep the rest mounted through its exit animation when names are cleared
+  const [renderRest, setRenderRest] = useState(false);
+  const [closing, setClosing] = useState(false);
+  useEffect(() => {
+    if (namesDone) {
+      setRenderRest(true);
+      setClosing(false);
+    } else if (renderRest) {
+      setClosing(true);
+      const t = setTimeout(() => setRenderRest(false), 360);
+      return () => clearTimeout(t);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [namesDone]);
+
   return (
     <div className="create-wrap">
       <button className="back-btn" onClick={onBack}>
@@ -112,9 +127,12 @@ export function CreateParty({
           <p className="create-hint mono">enter both names to set the rest of the rules ↓</p>
         )}
 
-        {namesDone && (
+        {renderRest && (
           <>
-            <div className="fld fld-reveal" style={{ animationDelay: '0s' }}>
+            <div
+              className={'fld fld-reveal' + (closing ? ' closing' : '')}
+              style={{ animationDelay: closing ? '0s' : '0s' }}
+            >
               <span className="fld-label">
                 genre lane <i className="fld-note">- songs compete against equals</i>
               </span>
@@ -131,7 +149,10 @@ export function CreateParty({
               </div>
             </div>
 
-            <div className="fld-pair fld-reveal" style={{ animationDelay: '0.14s' }}>
+            <div
+              className={'fld-pair fld-reveal' + (closing ? ' closing' : '')}
+              style={{ animationDelay: closing ? '0s' : '0.13s' }}
+            >
               <div className="fld">
                 <span className="fld-label">
                   song limit <b className="fld-val">{maxSongs}</b>
@@ -147,7 +168,10 @@ export function CreateParty({
               </div>
             </div>
 
-            <div className="create-actions fld-reveal" style={{ animationDelay: '0.28s' }}>
+            <div
+              className={'create-actions fld-reveal' + (closing ? ' closing' : '')}
+              style={{ animationDelay: closing ? '0s' : '0.26s' }}
+            >
               <Btn
                 big
                 disabled={busy}

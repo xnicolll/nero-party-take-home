@@ -106,6 +106,8 @@ export interface Room {
   emptySince: number | null;
   awaitingMore: boolean; // queue exhausted, host deciding to add more or finish
   paused: boolean; // host paused playback for everyone
+  dislikes: Set<string>; // participants who disliked the current song
+  dislikeTimers: NodeJS.Timeout[]; // pending bot pile-on timers
 }
 
 const byCode = new Map<string, Room>();

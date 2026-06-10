@@ -33,7 +33,12 @@ const STRIP_STEPS = [
     d: 'You only get a few in each party. Worth 3×. Save them for goosebumps.',
   },
   {
-    n: '06 · crown',
+    n: '06 · skip',
+    t: 'Not feeling it?',
+    d: 'Dislike a song. If most of the room agrees, it auto-skips.',
+  },
+  {
+    n: '07 · crown',
     t: 'One song wins.',
     d: 'Songs race on a live board. Best moments battle 1v1. Then the crown.',
   },
@@ -90,7 +95,8 @@ function StripDemo({ i }: { i: number }) {
       </>
     );
   if (i === 4) return <RGlyph type="chills" size={16} />;
-  if (i === 5) return <HeatShape buckets={[1, 3, 2, 6, 9, 4, 2, 5, 11, 6, 3, 1]} w={90} h={22} />;
+  if (i === 5) return <span style={{ fontSize: 22 }}>👎</span>;
+  if (i === 6) return <HeatShape buckets={[1, 3, 2, 6, 9, 4, 2, 5, 11, 6, 3, 1]} w={90} h={22} />;
   if (i === 0) return <span className="orb" style={{ width: 16, height: 16 }} />;
   return null;
 }
@@ -119,7 +125,7 @@ function FilmStrip() {
   };
   const stepNo = Math.min(STRIP_STEPS.length, 1 + Math.floor(prog * STRIP_STEPS.length));
   return (
-    <section ref={outer} id="how" className="strip-outer" style={{ height: '380vh' }}>
+    <section ref={outer} id="how" className="strip-outer" style={{ height: '440vh' }}>
       <div className="strip-sticky">
         <div className="strip-head">
           <Eyebrow>how it works</Eyebrow>

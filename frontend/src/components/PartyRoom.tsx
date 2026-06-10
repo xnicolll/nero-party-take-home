@@ -41,6 +41,11 @@ interface PartyRoomProps {
   search: (q: string) => Promise<Track[]>;
   add: (t: Track) => Promise<{ ok: boolean; reason?: string }>;
   onRemove: (songId: string) => void;
+  onDislike: (on: boolean) => void;
+  disliked: boolean;
+  dislikeCount: number;
+  dislikeTotal: number;
+  skipNotice: { title: string; reason: string } | null;
 }
 
 export function PartyRoom({
@@ -66,6 +71,11 @@ export function PartyRoom({
   search,
   add,
   onRemove,
+  onDislike,
+  disliked,
+  dislikeCount,
+  dislikeTotal,
+  skipNotice,
 }: PartyRoomProps) {
   const [showAdd, setShowAdd] = useState(false);
   const liveSong = songs.find((s) => s.id === current.song.id) ?? current.song;
@@ -81,6 +91,16 @@ export function PartyRoom({
   return (
     <div className="room2">
       <AmbientBackground artworkUrl={liveSong.artworkUrl} />
+
+      {skipNotice && (
+        <div className="skip-toast glass" key={skipNotice.title + skipNotice.reason}>
+          <span className="skip-toast-icon">⏭</span>
+          <div className="skip-toast-text">
+            <b>skipped “{skipNotice.title}”</b>
+            <span>{skipNotice.reason}</span>
+          </div>
+        </div>
+      )}
 
       <header className="room2-top">
         <div className="r2-left">
@@ -216,6 +236,18 @@ export function PartyRoom({
                 ▸▸
               </button>
             )}
+            <button
+              className={'dislike-btn glass' + (disliked ? ' is-on' : '')}
+              onClick={() => onDislike(!disliked)}
+              title={disliked ? 'remove your dislike' : 'not feeling it? the room can vote to skip'}
+            >
+              👎 <span>{disliked ? 'disliked' : 'dislike'}</span>
+              {dislikeCount > 0 && (
+                <b className="dislike-count mono">
+                  {dislikeCount}/{dislikeTotal}
+                </b>
+              )}
+            </button>
             <span className="transport-state mono">
               {paused
                 ? 'paused by host'
