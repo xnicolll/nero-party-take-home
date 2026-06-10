@@ -1,16 +1,14 @@
 // ============================================================
-// NERO PARTY — coronation (v2)
-// dim -> replay the peak -> crown. Real album art, less card framing, and a
-// "you might like" row matched from what the group liked (Audius genre/artist).
+// NERO PARTY — coronation
+// A brief "moment of truth" reveal in the same light UI (no dark/storm), then
+// the crowns. Song + Moment of the Night are playable, like the suggestions.
 // ============================================================
-import { useEffect, useMemo, useState } from 'react';
-import { REACTIONS, fmtTime, mulberry32, seedFromId } from '../lib/nero';
-import type { Rec, ReactionType, ResultsDTO } from '../lib/types';
-import { AlbumArt, Btn, Eyebrow, HeatShape, RGlyph, StarField } from './atoms';
+import { useEffect, useState } from 'react';
+import { REACTIONS, fmtTime } from '../lib/nero';
+import type { Rec, ResultsDTO } from '../lib/types';
+import { AlbumArt, Btn, Eyebrow, RGlyph, StarField } from './atoms';
 import { SnippetPlayer, type SnippetTrack } from './SnippetPlayer';
 import { Modal } from './Modal';
-
-const STORM_TYPES: ReactionType[] = ['drop', 'groove', 'feels', 'wtf', 'chills'];
 
 export function Coronation({
   results,
@@ -21,64 +19,24 @@ export function Coronation({
   onRestart: () => void;
   getRecs: () => Promise<Rec[]>;
 }) {
-  const [stage, setStage] = useState<'dim' | 'replay' | 'crown'>('dim');
+  const [stage, setStage] = useState<'reveal' | 'crown'>('reveal');
   const [recs, setRecs] = useState<Rec[] | null>(null);
   const [snippet, setSnippet] = useState<SnippetTrack | null>(null);
   const champ = results.songOfNight;
   const moment = results.momentOfNight;
 
   useEffect(() => {
-    const t1 = setTimeout(() => setStage('replay'), 1400);
-    const t2 = setTimeout(() => setStage('crown'), 4600);
+    const t = setTimeout(() => setStage('crown'), 1900);
     getRecs().then(setRecs);
-    return () => {
-      clearTimeout(t1);
-      clearTimeout(t2);
-    };
+    return () => clearTimeout(t);
   }, [getRecs]);
 
-  const storm = useMemo(() => {
-    if (!moment) return [];
-    const rnd = mulberry32(seedFromId(moment.songId) + 99);
-    return Array.from({ length: 14 }, (_, i) => ({
-      type: i % 3 === 0 ? moment.glyph : STORM_TYPES[Math.floor(rnd() * STORM_TYPES.length)],
-      left: 12 + ((i * 61) % 76),
-      delay: i * 0.18,
-      size: 18 + ((i * 7) % 22),
-    }));
-  }, [moment]);
-
-  if (stage === 'dim') {
+  if (stage === 'reveal') {
     return (
-      <div className="coro coro-dim">
-        <p className="coro-dimtext mono">the lights go down…</p>
-      </div>
-    );
-  }
-
-  if (stage === 'replay' && moment) {
-    return (
-      <div className="coro coro-replay">
-        <Eyebrow>
-          REPLAYING THE PEAK · {moment.title.toUpperCase()} · {moment.ts}
-        </Eyebrow>
-        <div className="coro-storm">
-          {storm.map((g, i) => (
-            <span
-              key={i}
-              className="storm-glyph"
-              style={{
-                color: REACTIONS[g.type].color,
-                left: g.left + '%',
-                animationDelay: g.delay + 's',
-                fontSize: g.size,
-              }}
-            >
-              {REACTIONS[g.type].glyph}
-            </span>
-          ))}
-          <HeatShape buckets={moment.buckets} w={520} h={80} />
-        </div>
+      <div className="coro coro-reveal">
+        <StarField />
+        <Eyebrow>the votes are in</Eyebrow>
+        <h2 className="reveal-title">here's the moment of truth…</h2>
       </div>
     );
   }
@@ -88,7 +46,19 @@ export function Coronation({
       <StarField />
       <div className="coro-cols bare">
         {champ && (
-          <div className="crown-card crown-song">
+          <button
+            className="crown-card crown-song"
+            onClick={() =>
+              setSnippet({
+                title: champ.title,
+                artist: champ.artist,
+                streamUrl: champ.streamUrl,
+                artworkUrl: champ.artworkUrl,
+                hue: champ.hue,
+                durationSec: champ.durationSec,
+              })
+            }
+          >
             <Eyebrow color="var(--accent)">SONG OF THE NIGHT</Eyebrow>
             <div className="crown-art">
               <AlbumArt
@@ -98,16 +68,30 @@ export function Coronation({
                 radius={18}
                 priority
               />
+              <span className="crown-play">▶</span>
             </div>
             <h3 className="crown-mtitle">{champ.title}</h3>
             <p className="crown-artist">{champ.artist}</p>
             <div className="mono crown-stat">
               {champ.score.toFixed(1)} heat/min · queued by {champ.addedByName.toLowerCase()}
             </div>
-          </div>
+          </button>
         )}
         {moment && (
-          <div className="crown-card crown-moment">
+          <button
+            className="crown-card crown-moment"
+            onClick={() =>
+              setSnippet({
+                title: moment.title,
+                artist: moment.artist,
+                streamUrl: moment.streamUrl,
+                artworkUrl: moment.artworkUrl,
+                hue: moment.hue,
+                durationSec: moment.durationSec,
+                startFrac: moment.frac,
+              })
+            }
+          >
             <Eyebrow color={REACTIONS[moment.glyph].color}>MOMENT OF THE NIGHT</Eyebrow>
             <div className="crown-art">
               <AlbumArt
@@ -120,13 +104,14 @@ export function Coronation({
               <span className="moment-badge">
                 <RGlyph type={moment.glyph} size={24} />
               </span>
+              <span className="crown-play">▶</span>
             </div>
             <h3 className="crown-mtitle">{moment.title}</h3>
             <p className="crown-artist">at {moment.ts}</p>
             <div className="mono crown-stat">
               won the playoff · {moment.heat.toFixed(0)} peak heat
             </div>
-          </div>
+          </button>
         )}
       </div>
 

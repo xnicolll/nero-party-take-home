@@ -3,7 +3,7 @@
 // Ported from the design's nero-lobby.jsx (StarField/FilmStrip/CycleWord).
 // ============================================================
 import { useEffect, useRef, useState } from 'react';
-import { CYCLE_WORDS, REACTION_ORDER } from '../lib/nero';
+import { CYCLE_WORDS, REACTION_ORDER, REACTIONS } from '../lib/nero';
 import { Btn, Eyebrow, HeatShape, RGlyph, StarField } from './atoms';
 
 const STRIP_STEPS = [
@@ -248,9 +248,18 @@ export function Landing({ onBegin }: { onBegin: () => void }) {
             <b>1 link</b>
             <span>to join</span>
           </div>
-          <div className="stat-chip">
+          <div className="stat-chip stat-chip-taps">
             <b>5 taps</b>
-            <span>drop · groove · feels · wtf · chills</span>
+            <span className="tap-list">
+              {REACTION_ORDER.map((id) => (
+                <span key={id} className="tap-item">
+                  <i className="rglyph" style={{ color: REACTIONS[id].color }}>
+                    {REACTIONS[id].glyph}
+                  </i>
+                  {REACTIONS[id].label.toLowerCase()}
+                </span>
+              ))}
+            </span>
           </div>
           <div className="stat-chip">
             <b>2 sec</b>

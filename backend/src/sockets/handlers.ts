@@ -267,6 +267,25 @@ export function registerSocketHandlers(io: Server): void {
       castVote(room, (socket.data as SocketData).participantId, side);
     });
 
+    // ---- leave the party (explicit) ----
+    socket.on('leaveParty', () => {
+      const d = socket.data as Partial<SocketData>;
+      if (!d.partyId) return;
+      const room = getRoomByPartyId(d.partyId);
+      if (!room) return;
+      const p = room.participants.get(d.participantId ?? '');
+      if (p) {
+        p.socketIds.delete(socket.id);
+        p.connected = false;
+        prisma.participant
+          .update({ where: { id: p.id }, data: { connected: false } })
+          .catch(() => {});
+        socket.to(room.joinCode).emit('participantLeft', { participantId: p.id });
+      }
+      socket.leave(room.joinCode);
+      socket.data = {};
+    });
+
     // ---- disconnect ----
     socket.on('disconnect', () => {
       const d = socket.data as Partial<SocketData>;

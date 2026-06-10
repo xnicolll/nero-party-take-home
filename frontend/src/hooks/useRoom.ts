@@ -444,6 +444,7 @@ export function useRoom() {
     [],
   );
   const vote = useCallback((side: 0 | 1) => socket.emit('castVote', { side }), []);
+  const leave = useCallback(() => socket.emit('leaveParty'), []);
   const getRecs = useCallback(async () => {
     const r = await emitAck<any>('getRecs', {});
     return (r?.recs ?? []) as import('../lib/types').Rec[];
@@ -472,6 +473,7 @@ export function useRoom() {
       pausePlayback,
       resumePlayback,
       vote,
+      leave,
       getRecs,
       reset,
     },

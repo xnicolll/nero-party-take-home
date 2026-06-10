@@ -2783,3 +2783,138 @@ html[data-theme='dark'] .ambient-img {
   color: var(--ink);
   border-color: color-mix(in oklab, var(--ink) 8%, transparent);
 }
+
+/* ============================================================
+   v6 — keyboard hint, vertical taps list, light reveal, playable crowns
+   ============================================================ */
+.stage-keys {
+  font-size: 10px;
+  color: var(--ink-faint);
+  letter-spacing: 0.03em;
+  text-align: center;
+  max-width: 520px;
+  margin-top: -14px;
+}
+.rchip-key {
+  text-transform: lowercase;
+}
+
+/* landing "5 taps" chip as a vertical list (others unchanged) */
+.stat-chip-taps {
+  min-width: 150px;
+}
+.tap-list {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-top: 5px;
+}
+.tap-item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--ink-dim);
+  letter-spacing: 0.04em;
+}
+.tap-item .rglyph {
+  font-size: 11px;
+  width: 12px;
+  text-align: center;
+  font-style: normal;
+}
+
+/* coronation reveal — same light UI, no dark/storm */
+.coro-reveal {
+  gap: 14px;
+}
+.reveal-title {
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: clamp(28px, 3.6vw, 50px);
+  letter-spacing: -0.03em;
+  text-align: center;
+  animation: riseIn 0.7s var(--ease-damp);
+}
+
+/* crown cards are playable (snippet on click) */
+.crown-card {
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+}
+.crown-art {
+  border-radius: 18px;
+}
+.crown-play {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 30px;
+  color: #fff;
+  background: color-mix(in oklab, #14100c 34%, transparent);
+  border-radius: inherit;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.crown-card:hover .crown-play {
+  opacity: 1;
+}
+
+/* leave party buttons */
+.leave-btn {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: var(--ink-faint);
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 7px 14px;
+  transition:
+    color 0.15s,
+    border-color 0.15s;
+}
+.leave-btn:hover {
+  color: #c4503e;
+  border-color: #c4503e;
+}
+
+/* ============================================================
+   v7 — keep stat values on one line; leave confirmation
+   ============================================================ */
+.stat-chip b {
+  white-space: nowrap;
+}
+.stat-chip > span:not(.tap-list) {
+  white-space: nowrap;
+}
+
+.confirm-card {
+  width: min(380px, 92vw);
+  border-radius: 22px;
+  padding: 30px 32px 26px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  box-shadow: 0 30px 80px rgba(20, 16, 12, 0.4);
+}
+.confirm-title {
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 22px;
+  letter-spacing: -0.02em;
+}
+.confirm-sub {
+  color: var(--ink-dim);
+  font-size: 13px;
+}
+.confirm-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 16px;
+}

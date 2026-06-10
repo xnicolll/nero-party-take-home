@@ -97,8 +97,15 @@ export function ReactionBar({
 }) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      if (e.repeat) return;
+      // space = chills (the scarce one) — react without looking
+      if (e.code === 'Space' || e.key === ' ') {
+        e.preventDefault();
+        onReact('chills');
+        return;
+      }
       const i = parseInt(e.key, 10);
-      if (i >= 1 && i <= 5) onReact(REACTION_ORDER[i - 1]);
+      if (i >= 1 && i <= 4) onReact(REACTION_ORDER[i - 1]);
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
@@ -118,7 +125,9 @@ export function ReactionBar({
           >
             <span className="rchip-glyph">{r.glyph}</span>
             <span className="rchip-label">{r.label}</span>
-            <span className="rchip-key mono">{r.scarce ? chillsLeft + ' LEFT' : i + 1}</span>
+            <span className="rchip-key mono">
+              {r.scarce ? `space · ${chillsLeft} left` : `key ${i + 1}`}
+            </span>
           </button>
         );
       })}

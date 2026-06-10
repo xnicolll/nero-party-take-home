@@ -36,6 +36,7 @@ interface PartyRoomProps {
   onSkip: () => void;
   onEnd: () => void;
   onFinish: () => void;
+  onLeave: () => void;
   onHelp: () => void;
   search: (q: string) => Promise<Track[]>;
   add: (t: Track) => Promise<{ ok: boolean; reason?: string }>;
@@ -59,6 +60,7 @@ export function PartyRoom({
   onSkip,
   onEnd,
   onFinish,
+  onLeave,
   onHelp,
   search,
   add,
@@ -109,6 +111,9 @@ export function PartyRoom({
           </div>
           <button className="r2-iconbtn glass" onClick={onHelp} title="how it works">
             ?
+          </button>
+          <button className="leave-btn" onClick={onLeave} title="leave the party">
+            leave
           </button>
           {isHost && (
             <div className="r2-host mono">
@@ -180,6 +185,10 @@ export function PartyRoom({
           <div className="stage-react">
             <ReactionBar onReact={onReact} chillsLeft={chillsLeft} />
           </div>
+          <p className="stage-keys mono">
+            react without looking — keys 1–4, space for chills. music is meant to be enjoyed, not
+            stared at.
+          </p>
 
           <div className="transport">
             <button

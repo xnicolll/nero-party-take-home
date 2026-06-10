@@ -7,7 +7,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { loadCreds, useRoom } from './hooks/useRoom';
 import { usePlayback } from './hooks/usePlayback';
-import { Grain } from './components/atoms';
+import { Btn, Grain } from './components/atoms';
+import { Modal } from './components/Modal';
 import { Landing } from './components/Landing';
 import { CreateParty, type CreateConfig } from './components/CreateParty';
 import { Lobby } from './components/Lobby';
@@ -65,6 +66,15 @@ export default function App() {
     window.scrollTo(0, 0);
   }, [room.actions]);
 
+  // explicit "leave the party": confirm, then tell the server + go home
+  const [confirmLeave, setConfirmLeave] = useState(false);
+  const requestLeave = useCallback(() => setConfirmLeave(true), []);
+  const doLeave = useCallback(() => {
+    setConfirmLeave(false);
+    room.actions.leave();
+    goHome();
+  }, [room.actions, goHome]);
+
   const onCreate = useCallback(
     async (cfg: CreateConfig) => {
       setCreating(true);
@@ -109,7 +119,7 @@ export default function App() {
         youId={room.you?.participantId ?? ''}
         isHost={room.isHost}
         onStart={onStart}
-        onBack={goHome}
+        onLeave={requestLeave}
         search={room.actions.searchTracks}
         add={room.actions.addSong}
       />
@@ -136,6 +146,7 @@ export default function App() {
         onSkip={room.actions.skip}
         onEnd={room.actions.end}
         onFinish={room.actions.finish}
+        onLeave={requestLeave}
         onHelp={() => setShowTut(true)}
         search={room.actions.searchTracks}
         add={room.actions.addSong}
@@ -162,6 +173,18 @@ export default function App() {
     <>
       {screen}
       {showTut && <Tutorial onClose={() => setShowTut(false)} />}
+      <Modal open={confirmLeave} onClose={() => setConfirmLeave(false)}>
+        <div className="confirm-card glass">
+          <h3 className="confirm-title">Leave the party?</h3>
+          <p className="confirm-sub">You'll head back home. The party keeps going without you.</p>
+          <div className="confirm-actions">
+            <Btn ghost onClick={() => setConfirmLeave(false)}>
+              Stay
+            </Btn>
+            <Btn onClick={doLeave}>Leave party</Btn>
+          </div>
+        </div>
+      </Modal>
       {needsGesture && room.phase === 'party' && (
         <div className="audio-gate" onClick={prime}>
           <button className="audio-gate-btn" onClick={prime}>

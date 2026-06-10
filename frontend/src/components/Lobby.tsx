@@ -16,7 +16,7 @@ interface LobbyProps {
   youId: string;
   isHost: boolean;
   onStart: () => void;
-  onBack: () => void;
+  onLeave: () => void;
   search: (q: string) => Promise<Track[]>;
   add: (t: Track) => Promise<{ ok: boolean; reason?: string }>;
 }
@@ -28,7 +28,7 @@ export function Lobby({
   youId,
   isHost,
   onStart,
-  onBack,
+  onLeave,
   search,
   add,
 }: LobbyProps) {
@@ -99,8 +99,8 @@ export function Lobby({
   return (
     <div className="lobby">
       <StarField />
-      <button className="back-btn" onClick={onBack}>
-        ← back
+      <button className="back-btn" onClick={onLeave}>
+        ← leave party
       </button>
       <div className="lobby-top">
         <Eyebrow>
