@@ -4,7 +4,6 @@
 // ============================================================
 import { useState } from 'react';
 import { LANES } from '../lib/nero';
-import type { SongLengthMode } from '../lib/types';
 import { Btn, Eyebrow } from './atoms';
 
 export interface CreateConfig {
@@ -13,7 +12,6 @@ export interface CreateConfig {
   lane: string;
   maxSongs: number;
   chillsBudget: number;
-  songLengthMode: SongLengthMode;
 }
 
 // soundwave-style stepped selector
@@ -68,7 +66,6 @@ export function CreateParty({
   const [lane, setLane] = useState('Anything goes');
   const [maxSongs, setMaxSongs] = useState(5);
   const [chills, setChills] = useState(3);
-  const [mode, setMode] = useState<SongLengthMode>('clip');
 
   return (
     <div className="create-wrap">
@@ -119,26 +116,6 @@ export function CreateParty({
           </div>
         </div>
 
-        <div className="fld">
-          <span className="fld-label">
-            song length <i className="fld-note">- clip keeps the party moving</i>
-          </span>
-          <div className="lane-row">
-            <button
-              className={'lane-chip' + (mode === 'clip' ? ' lane-on' : '')}
-              onClick={() => setMode('clip')}
-            >
-              45s clip
-            </button>
-            <button
-              className={'lane-chip' + (mode === 'full' ? ' lane-on' : '')}
-              onClick={() => setMode('full')}
-            >
-              full track
-            </button>
-          </div>
-        </div>
-
         <div className="fld-pair">
           <div className="fld">
             <span className="fld-label">
@@ -169,7 +146,6 @@ export function CreateParty({
                 lane,
                 maxSongs,
                 chillsBudget: chills,
-                songLengthMode: mode,
               })
             }
           >

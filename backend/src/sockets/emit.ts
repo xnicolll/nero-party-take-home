@@ -30,7 +30,7 @@ function nameOf(room: Room, participantId: string): string {
 export function toSongDTO(room: Room, s: SongRuntime): SongDTO {
   return {
     id: s.id,
-    audiusId: s.audiusId,
+    trackId: s.trackId,
     title: s.title,
     artist: s.artist,
     durationSec: s.durationSec,
@@ -112,7 +112,7 @@ export function toMomentDTO(m: MomentRuntime): MomentDTO {
     title: m.song.title,
     artist: m.song.artist,
     hue: m.song.hue,
-    audiusId: m.song.audiusId,
+    trackId: m.song.trackId,
     artworkUrl: m.song.artworkUrl,
     streamUrl: m.song.streamUrl,
     durationSec: m.song.durationSec,

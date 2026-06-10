@@ -8,7 +8,7 @@ import type { Peak } from './lib/waveform.js';
 export type Phase = 'lobby' | 'party' | 'finale' | 'coronation';
 export type SongLengthMode = 'full' | 'clip';
 
-// A normalized Audius track (search/trending results).
+// A normalized track (search/trending results).
 export interface Track {
   id: string;
   title: string;
@@ -31,7 +31,7 @@ export interface ParticipantDTO {
 
 export interface SongDTO {
   id: string;
-  audiusId: string;
+  trackId: string;
   title: string;
   artist: string;
   durationSec: number;
@@ -91,7 +91,7 @@ export interface MomentDTO {
   title: string;
   artist: string;
   hue: number;
-  audiusId: string;
+  trackId: string;
   artworkUrl: string | null;
   streamUrl: string;
   durationSec: number;

@@ -69,9 +69,9 @@ export function seedFromId(id: string): number {
   return h >>> 0;
 }
 
-// Regenerate the waveform bars from (audiusId, peaks) - must match the server.
-export function waveform(audiusId: string, peaks: Peak[], n = 110): number[] {
-  const rnd = mulberry32(seedFromId(audiusId) + 7919);
+// Regenerate the waveform bars from (trackId, peaks) - must match the server.
+export function waveform(trackId: string, peaks: Peak[], n = 110): number[] {
+  const rnd = mulberry32(seedFromId(trackId) + 7919);
   const bars: number[] = [];
   let prev = 0.4;
   for (let i = 0; i < n; i++) {

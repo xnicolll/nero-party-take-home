@@ -2918,3 +2918,39 @@ html[data-theme='dark'] .ambient-img {
   justify-content: flex-end;
   margin-top: 16px;
 }
+
+/* remove-from-queue buttons */
+.pcard-remove {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: var(--ink-faint);
+  font-size: 11px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition:
+    opacity 0.15s,
+    color 0.15s;
+}
+.pcard:hover .pcard-remove {
+  opacity: 1;
+}
+.pcard-remove:hover {
+  color: #c4503e;
+}
+.search-row-btn.remove {
+  color: var(--ink-faint);
+  padding: 6px 9px;
+}
+.search-row-btn.remove:hover {
+  color: #c4503e;
+  border-color: #c4503e;
+}

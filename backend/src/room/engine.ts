@@ -9,8 +9,6 @@ import {
   BOT_POOL,
   BUCKETS,
   BOT_VOTE_STAGGER_MS,
-  CLIP_LEAD_MS,
-  CLIP_MS,
   DECIDE_DELAY_MS,
   MAX_BOTS,
   POSITION_BROADCAST_MS,
@@ -29,10 +27,10 @@ import {
   recordVote,
   tally,
 } from '../finale.js';
-import { buildSchedule, botVoteSide, windowPeaks } from './bots.js';
+import { buildSchedule, botVoteSide } from './bots.js';
 import { synthPeaks } from '../lib/waveform.js';
 import { mulberry32 } from '../lib/prng.js';
-import { getTrack, laneToGenre, trending } from '../services/audius.js';
+import { laneToGenre, trending } from '../services/itunes.js';
 import {
   buildResultsDTO,
   toCurrentDTO,
@@ -44,16 +42,13 @@ import type { MomentRuntime, Room, SongRuntime } from './state.js';
 import { currentSong, registerRoom } from './state.js';
 import type { Track } from '../types.js';
 
-// Known-good Audius ids if trending ever fails (durations are reasonable).
-const FALLBACK_TRACK_IDS = ['BqpPKMP', 'XBQQkmO', '937qObw', 'VRAJYZ9'];
-
 function emitRoom(room: Room, event: string, payload: unknown): void {
   room.io.to(room.joinCode).emit(event, payload);
 }
 
 export function makeRuntimeSong(row: {
   id: string;
-  audiusId: string;
+  trackId: string;
   title: string;
   artist: string;
   durationSec: number;
@@ -67,7 +62,7 @@ export function makeRuntimeSong(row: {
 }): SongRuntime {
   return {
     id: row.id,
-    audiusId: row.audiusId,
+    trackId: row.trackId,
     title: row.title,
     artist: row.artist,
     durationSec: row.durationSec,
@@ -77,7 +72,7 @@ export function makeRuntimeSong(row: {
     genre: row.genre,
     addedById: row.addedById,
     position: row.position,
-    peaks: synthPeaks(row.audiusId, row.durationSec),
+    peaks: synthPeaks(row.trackId, row.durationSec),
     heat: 0,
     score: 0,
     buckets: Array(BUCKETS).fill(0),
@@ -278,24 +273,11 @@ function startSong(room: Room): void {
   room.positionMs = 0;
   room.recent = [];
 
-  const durMs = song.durationSec * 1000;
-  let wp;
-  if (room.songLengthMode === 'clip') {
-    const hottest = [...song.peaks].sort((a, b) => b.w - a.w)[0] ?? { c: 0.5, w: 0.08 };
-    const peakMs = hottest.c * durMs;
-    room.effectiveDurationMs = Math.min(CLIP_MS, durMs);
-    room.clipStartMs = Math.max(
-      0,
-      Math.min(peakMs - CLIP_LEAD_MS, durMs - room.effectiveDurationMs),
-    );
-    const startFrac = room.clipStartMs / durMs;
-    const endFrac = (room.clipStartMs + room.effectiveDurationMs) / durMs;
-    wp = windowPeaks(song.peaks, startFrac, endFrac);
-  } else {
-    room.clipStartMs = 0;
-    room.effectiveDurationMs = durMs;
-    wp = song.peaks;
-  }
+  // iTunes serves ~30s previews, so the preview IS the playable window: play it
+  // from the start, no seeking.
+  room.clipStartMs = 0;
+  room.effectiveDurationMs = song.durationSec * 1000;
+  const wp = song.peaks;
 
   room.schedule = buildSchedule(song.durationSec, wp, botIds(room), room.idx * 977, room.botChills);
   room.cursor = 0;
@@ -387,16 +369,11 @@ function emitQueue(room: Room): void {
 export async function seedQueue(room: Room, count = room.maxSongs): Promise<void> {
   const slots = Math.max(0, Math.min(count, room.maxSongs - room.songs.length));
   if (slots === 0) return;
-  const sane = (t: Track) => t.durationSec >= 60 && t.durationSec <= 420;
-  const have = new Set(room.songs.map((s) => s.audiusId));
-  let tracks: Track[] = (await trending(laneToGenre(room.lane), 18)).filter(sane);
+  const have = new Set(room.songs.map((s) => s.trackId));
+  let tracks: Track[] = await trending(laneToGenre(room.lane), 20);
   if (tracks.length < slots) {
-    const more = (await trending(undefined, 18)).filter(sane);
+    const more = await trending('top hits', 20);
     for (const t of more) if (!tracks.find((x) => x.id === t.id)) tracks.push(t);
-  }
-  if (tracks.length === 0) {
-    const fetched = await Promise.all(FALLBACK_TRACK_IDS.map((id) => getTrack(id)));
-    tracks = fetched.filter((t): t is Track => t !== null);
   }
   const adder = botIds(room)[0] ?? [...room.participants.values()][0]?.id;
   if (!adder) return;
@@ -423,7 +400,7 @@ export async function addSongToRoom(
     data: {
       partyId: room.partyId,
       position,
-      audiusId: track.id,
+      trackId: track.id,
       title: track.title,
       artist: track.artist,
       durationSec: track.durationSec,
@@ -438,6 +415,23 @@ export async function addSongToRoom(
   if (!silent) emitQueue(room);
   // a song arriving during the intermission resumes playback
   if (!silent && room.awaitingMore) resumeFromMore(room);
+  return { ok: true };
+}
+
+// Remove an upcoming (not playing, not played) song from the queue.
+export function removeSong(room: Room, songId: string): { ok: boolean; reason?: string } {
+  const idx = room.songs.findIndex((s) => s.id === songId);
+  if (idx === -1) return { ok: false, reason: 'Not in the queue' };
+  const song = room.songs[idx];
+  if (song.played) return { ok: false, reason: 'Already played' };
+  if (room.phase === 'party' && idx <= room.idx) return { ok: false, reason: 'Playing now' };
+  room.songs.splice(idx, 1);
+  room.songs.forEach((s, i) => (s.position = i)); // re-number in memory
+  prisma.queuedSong.delete({ where: { id: songId } }).catch(() => {});
+  room.songs.forEach((s, i) =>
+    prisma.queuedSong.update({ where: { id: s.id }, data: { position: i } }).catch(() => {}),
+  );
+  emitQueue(room);
   return { ok: true };
 }
 

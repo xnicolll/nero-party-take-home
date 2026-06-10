@@ -40,6 +40,7 @@ interface PartyRoomProps {
   onHelp: () => void;
   search: (q: string) => Promise<Track[]>;
   add: (t: Track) => Promise<{ ok: boolean; reason?: string }>;
+  onRemove: (songId: string) => void;
 }
 
 export function PartyRoom({
@@ -64,6 +65,7 @@ export function PartyRoom({
   onHelp,
   search,
   add,
+  onRemove,
 }: PartyRoomProps) {
   const [showAdd, setShowAdd] = useState(false);
   const liveSong = songs.find((s) => s.id === current.song.id) ?? current.song;
@@ -142,11 +144,11 @@ export function PartyRoom({
                 search={search}
                 add={add}
                 full={queueFull}
-                queuedIds={new Set(songs.map((s) => s.audiusId))}
+                queuedIds={new Set(songs.map((s) => s.trackId))}
               />
             </div>
           ) : (
-            <PlaylistRail songs={songs} currentId={liveSong.id} />
+            <PlaylistRail songs={songs} currentId={liveSong.id} onRemove={onRemove} />
           )}
         </aside>
 

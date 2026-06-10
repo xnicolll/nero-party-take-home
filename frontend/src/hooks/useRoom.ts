@@ -375,7 +375,6 @@ export function useRoom() {
       lane: string;
       maxSongs: number;
       chillsBudget: number;
-      songLengthMode: string;
     }) => {
       const r = await emitAck<any>('createParty', cfg);
       if (r?.ok) {
@@ -421,6 +420,10 @@ export function useRoom() {
   }, []);
 
   const addSong = useCallback(async (track: Track) => emitAck<any>('addSong', { track }), []);
+  const removeSong = useCallback(
+    async (songId: string) => emitAck<any>('removeSong', { songId }),
+    [],
+  );
   const react = useCallback((type: ReactionType) => {
     if (type === 'chills') dispatch({ type: 'localChills' });
     socket.emit('react', { type });
@@ -465,6 +468,7 @@ export function useRoom() {
       resume,
       searchTracks,
       addSong,
+      removeSong,
       react,
       start,
       skip,

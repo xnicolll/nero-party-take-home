@@ -39,7 +39,7 @@ export function VinylArt({
   );
 }
 
-// Real Audius album art, with the generated vinyl as a graceful fallback.
+// Real album art (iTunes), with the generated vinyl as a graceful fallback.
 export function AlbumArt({
   artworkUrl,
   hue,

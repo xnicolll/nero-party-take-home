@@ -52,14 +52,14 @@ model QueuedSong {
   id          String      @id @default(cuid())
   partyId     String
   party       Party       @relation(fields: [partyId], references: [id], onDelete: Cascade)
-  position    Int // 0-based queue order
-  audiusId    String
+  position    Int // queue order hint; the in-memory room.songs array is the live truth
+  trackId     String // iTunes track id
   title       String
   artist      String
   durationSec Int
   artworkUrl  String?
   genre       String?
-  streamUrl   String // direct Audius stream the client plays
+  streamUrl   String // iTunes preview URL the client plays
   hue         Int // deterministic 0..359 for vinyl art tint
   addedById   String
   addedBy     Participant @relation(fields: [addedById], references: [id])
@@ -68,7 +68,6 @@ model QueuedSong {
 
   reactions Reaction[]
 
-  @@unique([partyId, position])
   @@index([partyId])
 }
 

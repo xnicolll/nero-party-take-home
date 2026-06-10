@@ -10,7 +10,7 @@ import type { Phase, SongLengthMode } from '../types.js';
 
 export interface SongRuntime {
   id: string;
-  audiusId: string;
+  trackId: string;
   title: string;
   artist: string;
   durationSec: number;

@@ -37,7 +37,7 @@ export interface PinDTO {
 
 export interface SongDTO {
   id: string;
-  audiusId: string;
+  trackId: string;
   title: string;
   artist: string;
   durationSec: number;
@@ -90,7 +90,7 @@ export interface MomentDTO {
   title: string;
   artist: string;
   hue: number;
-  audiusId: string;
+  trackId: string;
   artworkUrl: string | null;
   streamUrl: string;
   durationSec: number;

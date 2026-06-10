@@ -5,7 +5,6 @@ dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
 export const env = {
   PORT: process.env.PORT || 3000,
-  // Audius needs no key - just an app name passed on every request.
-  AUDIUS_APP_NAME: process.env.AUDIUS_APP_NAME || 'NeroParty',
+  // Music: the iTunes Search API needs no key or auth.
   CLIENT_ORIGIN: process.env.CLIENT_ORIGIN || 'http://localhost:5173',
 };

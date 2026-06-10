@@ -22,7 +22,7 @@ export function WavePlayer({
   pins: LivePin[];
   bursts: Burst[];
 }) {
-  const bars = useMemo(() => waveform(song.audiusId, song.peaks, 110), [song.audiusId, song.peaks]);
+  const bars = useMemo(() => waveform(song.trackId, song.peaks, 110), [song.trackId, song.peaks]);
   const now = Date.now();
   const fresh = pins.filter((p) => p.t && now - p.t < 2600);
   return (
@@ -137,7 +137,15 @@ export function ReactionBar({
 
 // ---------- v2 playlist rail: queue + live standings merged, racing ----------
 const RROW = 72;
-export function PlaylistRail({ songs, currentId }: { songs: SongDTO[]; currentId: string | null }) {
+export function PlaylistRail({
+  songs,
+  currentId,
+  onRemove,
+}: {
+  songs: SongDTO[];
+  currentId: string | null;
+  onRemove?: (songId: string) => void;
+}) {
   const ranked = useMemo(() => {
     const arr = [...songs];
     arr.sort((a, b) => {
@@ -198,6 +206,15 @@ export function PlaylistRail({ songs, currentId }: { songs: SongDTO[]; currentId
                 </span>
               </span>
               <span className="pcard-heat mono">{active ? s.score.toFixed(1) : ''}</span>
+              {onRemove && !active && (
+                <button
+                  className="pcard-remove"
+                  title="remove from queue"
+                  onClick={() => onRemove(s.id)}
+                >
+                  ✕
+                </button>
+              )}
             </div>
           );
         })}

@@ -122,6 +122,7 @@ export default function App() {
         onLeave={requestLeave}
         search={room.actions.searchTracks}
         add={room.actions.addSong}
+        remove={room.actions.removeSong}
       />
     );
   } else if (room.phase === 'party' && room.party && room.current) {
@@ -150,6 +151,7 @@ export default function App() {
         onHelp={() => setShowTut(true)}
         search={room.actions.searchTracks}
         add={room.actions.addSong}
+        onRemove={room.actions.removeSong}
       />
     );
   } else if (room.phase === 'finale' && room.finale) {

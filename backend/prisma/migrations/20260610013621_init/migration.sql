@@ -31,7 +31,7 @@ CREATE TABLE "QueuedSong" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "partyId" TEXT NOT NULL,
     "position" INTEGER NOT NULL,
-    "audiusId" TEXT NOT NULL,
+    "trackId" TEXT NOT NULL,
     "title" TEXT NOT NULL,
     "artist" TEXT NOT NULL,
     "durationSec" INTEGER NOT NULL,
@@ -80,9 +80,6 @@ CREATE INDEX "Participant_partyId_idx" ON "Participant"("partyId");
 
 -- CreateIndex
 CREATE INDEX "QueuedSong_partyId_idx" ON "QueuedSong"("partyId");
-
--- CreateIndex
-CREATE UNIQUE INDEX "QueuedSong_partyId_position_key" ON "QueuedSong"("partyId", "position");
 
 -- CreateIndex
 CREATE INDEX "Reaction_partyId_songId_idx" ON "Reaction"("partyId", "songId");

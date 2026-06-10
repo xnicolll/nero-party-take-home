@@ -11,7 +11,7 @@ export function mulberry32(seed: number): () => number {
   };
 }
 
-// Stable integer seed from an Audius track id (replaces the design's
+// Stable integer seed from a track id (replaces the design's
 // `song.id.charCodeAt(1) * ...` now that ids are arbitrary strings).
 export function seedFromId(id: string): number {
   let h = 2166136261;

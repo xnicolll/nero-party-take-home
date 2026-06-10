@@ -19,11 +19,12 @@ import {
   hostResume,
   hostSkip,
   humanReact,
+  removeSong,
   seedQueue,
   startParty,
 } from '../room/engine.js';
 import { toSnapshot } from './emit.js';
-import { getTrack, searchTracks, streamUrl } from '../services/audius.js';
+import { getTrack, searchTracks } from '../services/itunes.js';
 import { buildRecs } from '../recommend.js';
 import type { Track } from '../types.js';
 
@@ -180,7 +181,7 @@ export function registerSocketHandlers(io: Server): void {
       ack?.({ ok: true, snapshot: toSnapshot(room, p.id), isHost });
     });
 
-    // ---- search Audius ----
+    // ---- search iTunes ----
     socket.on('searchTracks', async (payload: any, ack?: (r: any) => void) => {
       const tracks = await searchTracks(String(payload?.query ?? ''), 12);
       ack?.({ ok: true, tracks });
@@ -191,11 +192,17 @@ export function registerSocketHandlers(io: Server): void {
       const room = roomFromSocket(socket);
       if (!room) return ack?.({ ok: false, reason: 'No party' });
       let t: Track | null = payload?.track ?? null;
-      if (!t && payload?.audiusId) t = await getTrack(String(payload.audiusId));
+      if (!t && payload?.trackId) t = await getTrack(String(payload.trackId));
       if (!t || !t.id) return ack?.({ ok: false, reason: 'Track unavailable' });
-      t = { ...t, streamUrl: streamUrl(t.id) }; // always trust our stream URL
       const res = await addSongToRoom(room, t, (socket.data as SocketData).participantId);
       ack?.(res);
+    });
+
+    // ---- remove a song from the queue ----
+    socket.on('removeSong', (payload: any, ack?: (r: any) => void) => {
+      const room = roomFromSocket(socket);
+      if (!room) return ack?.({ ok: false, reason: 'No party' });
+      ack?.(removeSong(room, String(payload?.songId ?? '')));
     });
 
     // ---- react (human tap) ----

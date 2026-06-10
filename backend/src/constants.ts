@@ -36,7 +36,7 @@ export function isReactionType(x: unknown): x is ReactionType {
   return typeof x === 'string' && x in REACTIONS;
 }
 
-// Genre lanes shown on the create screen. Mapped to Audius genres in audius.ts.
+// Genre lanes shown on the create screen. Mapped to iTunes search terms in itunes.ts.
 export const LANES = ['Anything goes', 'Electronic', 'Indie / Alt', 'Hip-hop', 'Ambient'] as const;
 export type Lane = (typeof LANES)[number];
 

@@ -4,7 +4,7 @@
 // ============================================================
 import { useEffect, useRef, useState } from 'react';
 import type { ParticipantDTO, PartyDTO, SongDTO, Track } from '../lib/types';
-import { Btn, Eyebrow, StarField } from './atoms';
+import { AlbumArt, Btn, Eyebrow, StarField } from './atoms';
 import { SongSearch } from './SongSearch';
 import { SnippetPlayer, type SnippetTrack } from './SnippetPlayer';
 import { Modal } from './Modal';
@@ -19,6 +19,7 @@ interface LobbyProps {
   onLeave: () => void;
   search: (q: string) => Promise<Track[]>;
   add: (t: Track) => Promise<{ ok: boolean; reason?: string }>;
+  remove: (songId: string) => void;
 }
 
 export function Lobby({
@@ -31,6 +32,7 @@ export function Lobby({
   onLeave,
   search,
   add,
+  remove,
 }: LobbyProps) {
   const fieldRef = useRef<HTMLDivElement>(null);
   const nodesRef = useRef<Record<string, { ang: number; r: number }>>({});
@@ -175,12 +177,51 @@ export function Lobby({
               })
             }
             full={songs.length >= party.maxSongs}
-            queuedIds={new Set(songs.map((s) => s.audiusId))}
+            queuedIds={new Set(songs.map((s) => s.trackId))}
           />
+          {songs.length > 0 && (
+            <>
+              <Eyebrow>in the queue · {songs.length}</Eyebrow>
+              <div className="search-results" style={{ maxHeight: 160 }}>
+                {songs.map((s) => (
+                  <div key={s.id} className="search-row">
+                    <AlbumArt artworkUrl={s.artworkUrl} hue={s.hue} size={30} radius={6} />
+                    <div className="search-row-meta">
+                      <b>{s.title}</b>
+                      <span>
+                        {s.artist} · {s.addedByName.toLowerCase()}
+                      </span>
+                    </div>
+                    <button
+                      className="search-row-btn mono"
+                      title="preview"
+                      onClick={() =>
+                        setSnippet({
+                          title: s.title,
+                          artist: s.artist,
+                          streamUrl: s.streamUrl,
+                          artworkUrl: s.artworkUrl,
+                          hue: s.hue,
+                          durationSec: s.durationSec,
+                        })
+                      }
+                    >
+                      ▶
+                    </button>
+                    <button
+                      className="search-row-btn remove mono"
+                      title="remove from queue"
+                      onClick={() => remove(s.id)}
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
           <div className="tut-foot">
-            <span className="lobby-wait mono">
-              {songs.length} queued · friends can add via the link
-            </span>
+            <span className="lobby-wait mono">friends can add via the link</span>
             <button className="tut-next" onClick={() => setShowSongs(false)}>
               done →
             </button>

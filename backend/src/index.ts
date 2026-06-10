@@ -25,7 +25,7 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok' });
 });
 
-// REST: Audius proxy + party lookup
+// REST: iTunes proxy + party lookup
 app.use('/api/tracks', tracksRouter);
 app.use('/api/parties', partiesRouter);
 

@@ -5,12 +5,12 @@ export interface Peak {
   w: number; // width fraction
 }
 
-// Real Audius tracks ship no peak metadata, so we synthesize "peak zones"
+// Real tracks ship no peak metadata, so we synthesize "peak zones"
 // deterministically from (id, duration). Load-bearing: bots cluster reactions
 // near peaks, clip mode starts near the hottest peak, and the client places
 // pins against the same waveform.
-export function synthPeaks(audiusId: string, durationSec: number): Peak[] {
-  const rnd = mulberry32(seedFromId(audiusId) + durationSec);
+export function synthPeaks(trackId: string, durationSec: number): Peak[] {
+  const rnd = mulberry32(seedFromId(trackId) + durationSec);
   const n = 1 + Math.floor(rnd() * 2); // 1-2 peak zones
   const peaks: Peak[] = [];
   for (let i = 0; i < n; i++) {
@@ -22,8 +22,8 @@ export function synthPeaks(audiusId: string, durationSec: number): Peak[] {
 // Seeded waveform bars, taller inside peak zones - verbatim shape from the
 // design's nero-data.js `waveform()`. The client regenerates these for render;
 // the server uses peaks (not bars) for logic.
-export function waveform(audiusId: string, peaks: Peak[], n = 110): number[] {
-  const rnd = mulberry32(seedFromId(audiusId) + 7919);
+export function waveform(trackId: string, peaks: Peak[], n = 110): number[] {
+  const rnd = mulberry32(seedFromId(trackId) + 7919);
   const bars: number[] = [];
   let prev = 0.4;
   for (let i = 0; i < n; i++) {
