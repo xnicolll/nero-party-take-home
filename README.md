@@ -67,7 +67,7 @@ npm run cleanup:check  # verify
 ## Tech stack
 
 - **Backend** - Express, Prisma, Socket.IO, TypeScript
-- **Frontend** - React, Vite, Tailwind, TypeScript
+- **Frontend** - React, Vite, Custom CSS, TypeScript
 - **DB** - SQLite (zero setup)
 - **Music** - iTunes Search API (open, no key)
 
