@@ -2,7 +2,7 @@
 // NERO PARTY - snippet preview card (rendered inside a <Modal>)
 // Plays ~12s from a representative point (or a given start), eager artwork.
 // ============================================================
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { fmtTime } from '../lib/nero';
 import { AlbumArt } from './atoms';
 
@@ -18,6 +18,12 @@ export interface SnippetTrack {
 
 export function SnippetPlayer({ track, onDone }: { track: SnippetTrack; onDone: () => void }) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [left, setLeft] = useState(12);
+
+  useEffect(() => {
+    const id = setInterval(() => setLeft((l) => Math.max(0, l - 1)), 1000);
+    return () => clearInterval(id);
+  }, []);
 
   useEffect(() => {
     const a = new Audio();
@@ -69,7 +75,7 @@ export function SnippetPlayer({ track, onDone }: { track: SnippetTrack; onDone: 
         <span />
       </div>
       <div className="mono" style={{ fontSize: 10, color: 'var(--ink-faint)' }}>
-        12s preview · tap anywhere to close
+        <b style={{ color: 'var(--accent)' }}>{left}s</b> left · tap anywhere to close
       </div>
     </div>
   );

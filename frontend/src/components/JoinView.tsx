@@ -49,7 +49,7 @@ export function JoinView({
     <div className="create-wrap">
       <StarField />
       <div className="create-card" style={{ maxWidth: 460, alignItems: 'stretch' }}>
-        <Eyebrow>~/join · {code}</Eyebrow>
+        <Eyebrow>join · {code}</Eyebrow>
         {status === 'loading' && <h2 className="create-title">Finding the party…</h2>}
         {status === 'missing' && (
           <>

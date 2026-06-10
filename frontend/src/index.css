@@ -2986,3 +2986,95 @@ html[data-theme='dark'] .ambient-img {
     opacity: 1;
   }
 }
+
+/* ============================================================
+   v9 - hero stagger, create reveal, modal de-dupe, un-add, queue add
+   ============================================================ */
+
+/* the Modal animates its own body; don't double-animate the inner card */
+.modal-body > * {
+  animation: none;
+}
+
+/* landing hero: staggered dampened fade-up on load */
+.hero > * {
+  animation: heroChild 0.7s var(--ease-damp) backwards;
+}
+.hero > *:nth-child(1) {
+  animation-delay: 0.05s;
+}
+.hero > *:nth-child(2) {
+  animation-delay: 0.16s;
+}
+.hero > *:nth-child(3) {
+  animation-delay: 0.27s;
+}
+.hero > *:nth-child(4) {
+  animation-delay: 0.38s;
+}
+@keyframes heroChild {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+}
+
+/* create: each section eases in once names are done */
+.fld-reveal {
+  animation: revealIn 0.55s var(--ease-damp) backwards;
+}
+@keyframes revealIn {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+}
+.fld-input.fld-err {
+  border-color: #c4503e;
+}
+.fld-reminder {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: #c4503e;
+  margin-top: 3px;
+}
+.create-hint {
+  font-size: 11px;
+  color: var(--ink-faint);
+  text-align: center;
+  letter-spacing: 0.04em;
+}
+
+/* un-add (queued -> remove) button */
+.search-row-btn.add.queued {
+  color: #c4503e;
+  border-color: color-mix(in oklab, #c4503e 35%, transparent);
+}
+.search-row-btn.add.queued:hover:not(:disabled) {
+  background: #c4503e;
+  color: #fff;
+  border-color: #c4503e;
+}
+
+/* queue list items spring in (only newly-keyed rows replay) */
+.queue-item {
+  animation: queueItemIn 0.5s var(--ease-spring);
+}
+@keyframes queueItemIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.97);
+  }
+}
+
+/* rail cards fade only, so the racing translateY transform isn't clobbered */
+@keyframes railIn {
+  from {
+    opacity: 0;
+  }
+}
+
+/* bigger reaction emojis */
+.rchip-glyph {
+  font-size: 22px;
+}

@@ -9,12 +9,14 @@ import { AlbumArt } from './atoms';
 export function SongSearch({
   search,
   add,
+  onUnqueue,
   onPreview,
   full,
   queuedIds,
 }: {
   search: (q: string) => Promise<Track[]>;
   add: (t: Track) => Promise<{ ok: boolean; reason?: string }>;
+  onUnqueue?: (trackId: string) => void;
   onPreview?: (t: Track) => void;
   full?: boolean; // queue is full
   queuedIds: Set<string>;
@@ -49,6 +51,15 @@ export function SongSearch({
     const r = await add(t);
     setAdding(null);
     if (r.ok) setAdded((s) => new Set(s).add(t.id));
+  };
+
+  const onUnadd = (t: Track) => {
+    setAdded((s) => {
+      const n = new Set(s);
+      n.delete(t.id);
+      return n;
+    });
+    onUnqueue?.(t.id);
   };
 
   return (
@@ -90,11 +101,12 @@ export function SongSearch({
                 </button>
               )}
               <button
-                className="search-row-btn add mono"
-                disabled={!!full || isQueued || adding === t.id}
-                onClick={() => onAdd(t)}
+                className={'search-row-btn add mono' + (isQueued ? ' queued' : '')}
+                disabled={(!isQueued && !!full) || adding === t.id}
+                onClick={() => (isQueued ? onUnadd(t) : onAdd(t))}
+                title={isQueued ? 'remove from queue' : 'add to queue'}
               >
-                {isQueued ? 'QUEUED ✓' : adding === t.id ? 'ADDING…' : full ? 'FULL' : '+ ADD'}
+                {adding === t.id ? 'ADDING…' : isQueued ? 'QUEUED ✕' : full ? 'FULL' : '+ ADD'}
               </button>
             </div>
           );

@@ -115,7 +115,7 @@ export function Lobby({
       </button>
       <div className="lobby-top">
         <Eyebrow>
-          ~/lobby · {party.lane.toLowerCase()} · {party.maxSongs} songs max
+          lobby · {party.lane.toLowerCase()} · {party.maxSongs} songs max
           {host ? ` · hosted by ${host.name}` : ''}
         </Eyebrow>
         <h2 className="lobby-title">{party.name}</h2>
@@ -179,11 +179,15 @@ export function Lobby({
       <Modal open={showSongs} onClose={() => setShowSongs(false)}>
         <div className="tut-card" style={{ width: 440 }}>
           <span className="tut-path">
-            ~/queue · {songs.length}/{party.maxSongs}
+            your queue · {songs.length}/{party.maxSongs}
           </span>
           <SongSearch
             search={search}
             add={add}
+            onUnqueue={(trackId) => {
+              const s = songs.find((x) => x.trackId === trackId);
+              if (s) remove(s.id);
+            }}
             onPreview={(t) =>
               setSnippet({
                 title: t.title,
@@ -202,7 +206,7 @@ export function Lobby({
               <Eyebrow>in the queue · {songs.length}</Eyebrow>
               <div className="search-results" style={{ maxHeight: 160 }}>
                 {songs.map((s) => (
-                  <div key={s.id} className="search-row">
+                  <div key={s.id} className="search-row queue-item">
                     <AlbumArt artworkUrl={s.artworkUrl} hue={s.hue} size={30} radius={6} />
                     <div className="search-row-meta">
                       <b>{s.title}</b>

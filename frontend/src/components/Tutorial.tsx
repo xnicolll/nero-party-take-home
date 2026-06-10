@@ -14,13 +14,13 @@ const DEMO_PEOPLE = [
 
 const TUT_STEPS = [
   {
-    path: '~/tutorial/1',
+    path: 'step 1 of 6',
     title: 'Start a party',
     body: 'Pick the rules. Share one link. Friends join. No accounts.',
     visual: () => <div className="orb orb-sm" />,
   },
   {
-    path: '~/tutorial/2',
+    path: 'step 2 of 6',
     title: 'Songs play for everyone',
     body: 'One shared queue. Everyone hears the same song at the same time.',
     visual: () => (
@@ -32,7 +32,7 @@ const TUT_STEPS = [
     ),
   },
   {
-    path: '~/tutorial/3',
+    path: 'step 3 of 6',
     title: 'Tap what you feel',
     body: 'Your tap sticks to that exact second of the song. The drop. The bridge. That bit.',
     visual: () => (
@@ -44,9 +44,9 @@ const TUT_STEPS = [
     ),
   },
   {
-    path: '~/tutorial/4',
+    path: 'step 4 of 6',
     title: 'Sync = bonus',
-    body: '3 people tap within 2 seconds? That moment scores extra. Feel it together.',
+    body: '3 people tap within 2 seconds? That moment scores highly. Feel it together.',
     visual: () => (
       <div style={{ display: 'flex', gap: 6 }}>
         {DEMO_PEOPLE.map((p) => (
@@ -56,13 +56,13 @@ const TUT_STEPS = [
     ),
   },
   {
-    path: '~/tutorial/5',
+    path: 'step 5 of 6',
     title: 'CHILLS is rare',
-    body: 'You only get a few all night. Worth 3×. Save it for real goosebumps.',
+    body: 'You only get a few in each party. Worth 3×. Save it for real goosebumps.',
     visual: () => <RGlyph type="chills" size={32} />,
   },
   {
-    path: '~/tutorial/6',
+    path: 'step 6 of 6',
     title: 'One song wins',
     body: 'Songs race on a live board. At the end, the best moments battle 1v1. Then a winner is crowned.',
     visual: () => (

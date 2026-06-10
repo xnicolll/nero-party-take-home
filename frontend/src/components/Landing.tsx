@@ -3,37 +3,37 @@
 // Ported from the design's nero-lobby.jsx (StarField/FilmStrip/CycleWord).
 // ============================================================
 import { useEffect, useRef, useState } from 'react';
-import { CYCLE_WORDS, REACTION_ORDER, REACTIONS } from '../lib/nero';
+import { CYCLE_WORDS, REACTION_ORDER } from '../lib/nero';
 import { Btn, Eyebrow, HeatShape, RGlyph, StarField } from './atoms';
 
 const STRIP_STEPS = [
   {
-    n: '/01_start',
+    n: '01 · start',
     t: 'Start a party.',
     d: 'Pick the rules. Share one link. Friends join. No accounts.',
   },
   {
-    n: '/02_queue',
+    n: '02 · queue',
     t: 'One queue. Everyone adds.',
     d: 'Everyone hears the same song at the same time.',
   },
   {
-    n: '/03_react',
+    n: '03 · react',
     t: 'Tap what emotion you feel.',
     d: 'When you feel it. Your tap sticks to that exact second.',
   },
   {
-    n: '/04_sync',
+    n: '04 · sync',
     t: 'Feel it together.',
-    d: '3 people tap within 2 seconds? That moment scores extra.',
+    d: '3 people tap within 2 seconds? That moment scores highly.',
   },
   {
-    n: '/05_chills',
+    n: '05 · chills',
     t: 'Chills are rare.',
-    d: 'You only get a few all night. Worth 3×. Save them for goosebumps.',
+    d: 'You only get a few in each party. Worth 3×. Save them for goosebumps.',
   },
   {
-    n: '/06_crown',
+    n: '06 · crown',
     t: 'One song wins.',
     d: 'Songs race on a live board. Best moments battle 1v1. Then the crown.',
   },
@@ -122,7 +122,7 @@ function FilmStrip() {
     <section ref={outer} id="how" className="strip-outer" style={{ height: '380vh' }}>
       <div className="strip-sticky">
         <div className="strip-head">
-          <Eyebrow>~/how_it_works</Eyebrow>
+          <Eyebrow>how it works</Eyebrow>
           <div className="strip-rule">
             <span style={{ width: prog * 100 + '%' }} />
           </div>
@@ -233,43 +233,15 @@ export function Landing({ onBegin }: { onBegin: () => void }) {
       </nav>
       <header className="hero">
         <div className="hero-path">
-          ~/throw_a_listening_party <b>$</b>
+          throw a listening party<b>…</b>
         </div>
         <h1 className="hero-title">
           nero <CycleWord />
           <span className="cursor">▮</span>
         </h1>
         <p className="hero-sub">
-          a listening party where every second counts. queue with friends. react live. one song gets
-          crowned.
+          queue songs with friends, react the moment you feel it. one track gets crowned winner.
         </p>
-        <div className="hero-stats bare">
-          <div className="stat-chip">
-            <b>1 link</b>
-            <span>to join</span>
-          </div>
-          <div className="stat-chip stat-chip-taps">
-            <b>5 taps</b>
-            <span className="tap-list">
-              {REACTION_ORDER.map((id) => (
-                <span key={id} className="tap-item">
-                  <i className="rglyph" style={{ color: REACTIONS[id].color }}>
-                    {REACTIONS[id].glyph}
-                  </i>
-                  {REACTIONS[id].label.toLowerCase()}
-                </span>
-              ))}
-            </span>
-          </div>
-          <div className="stat-chip">
-            <b>2 sec</b>
-            <span>sync window</span>
-          </div>
-          <div className="stat-chip">
-            <b>1 crown</b>
-            <span>at the end</span>
-          </div>
-        </div>
         <div className="hero-scroll">
           <b>scroll to learn the ritual</b> ↓
         </div>

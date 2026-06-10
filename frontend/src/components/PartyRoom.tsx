@@ -143,6 +143,10 @@ export function PartyRoom({
               <SongSearch
                 search={search}
                 add={add}
+                onUnqueue={(trackId) => {
+                  const s = songs.find((x) => x.trackId === trackId);
+                  if (s) onRemove(s.id);
+                }}
                 full={queueFull}
                 queuedIds={new Set(songs.map((s) => s.trackId))}
               />
@@ -217,7 +221,7 @@ export function PartyRoom({
                 ? 'paused by host'
                 : isHost
                   ? 'you control playback'
-                  : 'tap a feeling · keys 1-5'}
+                  : 'tap a feeling · keys 1-4 + space'}
             </span>
           </div>
         </main>
@@ -227,7 +231,7 @@ export function PartyRoom({
       {awaitingMore && !showAdd && (
         <div className="audio-gate">
           <div className="intermission glass">
-            <Eyebrow>~/intermission</Eyebrow>
+            <Eyebrow>intermission</Eyebrow>
             <h3 className="intermission-title">That's the whole queue.</h3>
             {isHost ? (
               <>

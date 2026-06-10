@@ -98,6 +98,9 @@ export function ReactionBar({
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.repeat) return;
+      // don't hijack keys while someone is typing in a field (search, names…)
+      const el = document.activeElement;
+      if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA')) return;
       // space = chills (the scarce one) - react without looking
       if (e.code === 'Space' || e.key === ' ') {
         e.preventDefault();

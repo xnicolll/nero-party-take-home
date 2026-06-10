@@ -16,14 +16,14 @@ export interface ReactionDef {
 
 // Curated, not generic emoji. OKLCH colors carry over verbatim from the design.
 export const REACTIONS: Record<ReactionType, ReactionDef> = {
-  drop: { id: 'drop', label: 'DROP', glyph: '▲', color: 'oklch(0.6 0.16 45)', weight: 1 },
-  groove: { id: 'groove', label: 'GROOVE', glyph: '◆', color: 'oklch(0.6 0.16 320)', weight: 1 },
-  feels: { id: 'feels', label: 'FEELS', glyph: '●', color: 'oklch(0.6 0.16 10)', weight: 1 },
-  wtf: { id: 'wtf', label: 'WTF', glyph: '✶', color: 'oklch(0.6 0.13 95)', weight: 1 },
+  drop: { id: 'drop', label: 'DROP', glyph: '🫳', color: 'oklch(0.6 0.16 45)', weight: 1 },
+  groove: { id: 'groove', label: 'GROOVE', glyph: '🎶', color: 'oklch(0.6 0.16 320)', weight: 1 },
+  feels: { id: 'feels', label: 'FEELS', glyph: '🥹', color: 'oklch(0.6 0.16 10)', weight: 1 },
+  wtf: { id: 'wtf', label: 'BANG', glyph: '💥', color: 'oklch(0.6 0.13 95)', weight: 1 },
   chills: {
     id: 'chills',
     label: 'CHILLS',
-    glyph: '◎',
+    glyph: '🧊',
     color: 'oklch(0.58 0.12 230)',
     weight: 3,
     scarce: true,

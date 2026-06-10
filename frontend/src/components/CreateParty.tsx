@@ -1,6 +1,6 @@
 // ============================================================
-// NERO PARTY - create party (content on the surface, no hero card)
-// Soundwave selectors, host name, less-"AI" pills.
+// NERO PARTY - create party. Progressive reveal: names first, then genre,
+// then song limit + chills, each easing in once the previous is done.
 // ============================================================
 import { useState } from 'react';
 import { LANES } from '../lib/nero';
@@ -66,6 +66,11 @@ export function CreateParty({
   const [lane, setLane] = useState('Anything goes');
   const [maxSongs, setMaxSongs] = useState(5);
   const [chills, setChills] = useState(3);
+  const [touched, setTouched] = useState(false);
+
+  const namesDone = name.trim().length > 0 && hostName.trim().length > 0;
+  const nameErr = touched && !name.trim();
+  const hostErr = touched && !hostName.trim();
 
   return (
     <div className="create-wrap">
@@ -73,85 +78,94 @@ export function CreateParty({
         ← back
       </button>
       <div className="create-card rise">
-        <Eyebrow>~/new_party · step 1 of 2</Eyebrow>
+        <Eyebrow>new party</Eyebrow>
         <h2 className="create-title">Set the rules</h2>
 
         <div className="fld-pair">
           <label className="fld">
             <span className="fld-label">party name</span>
             <input
-              className="fld-input"
+              className={'fld-input' + (nameErr ? ' fld-err' : '')}
               value={name}
               placeholder="your session name here…"
               onChange={(e) => setName(e.target.value)}
+              onBlur={() => setTouched(true)}
               maxLength={36}
             />
+            {nameErr && <span className="fld-reminder">give your party a name to continue</span>}
           </label>
           <label className="fld">
             <span className="fld-label">your name (host)</span>
             <input
-              className="fld-input"
+              className={'fld-input' + (hostErr ? ' fld-err' : '')}
               value={hostName}
               placeholder="who's hosting?"
               onChange={(e) => setHostName(e.target.value)}
+              onBlur={() => setTouched(true)}
               maxLength={24}
             />
+            {hostErr && <span className="fld-reminder">add your name so guests know the host</span>}
           </label>
         </div>
 
-        <div className="fld">
-          <span className="fld-label">
-            genre lane <i className="fld-note">- songs compete against equals</i>
-          </span>
-          <div className="lane-row">
-            {LANES.map((l) => (
-              <button
-                key={l}
-                className={'lane-chip' + (l === lane ? ' lane-on' : '')}
-                onClick={() => setLane(l)}
+        {!namesDone && (
+          <p className="create-hint mono">enter both names to set the rest of the rules ↓</p>
+        )}
+
+        {namesDone && (
+          <>
+            <div className="fld fld-reveal" style={{ animationDelay: '0s' }}>
+              <span className="fld-label">
+                genre lane <i className="fld-note">- songs compete against equals</i>
+              </span>
+              <div className="lane-row">
+                {LANES.map((l) => (
+                  <button
+                    key={l}
+                    className={'lane-chip' + (l === lane ? ' lane-on' : '')}
+                    onClick={() => setLane(l)}
+                  >
+                    {l}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="fld-pair fld-reveal" style={{ animationDelay: '0.14s' }}>
+              <div className="fld">
+                <span className="fld-label">
+                  song limit <b className="fld-val">{maxSongs}</b>
+                </span>
+                <WaveSelect min={3} max={12} value={maxSongs} onChange={setMaxSongs} />
+              </div>
+              <div className="fld">
+                <span className="fld-label">
+                  chills tokens <b className="fld-val">{chills} each</b>
+                </span>
+                <WaveSelect min={1} max={5} value={chills} onChange={setChills} />
+                <i className="fld-note">rare on purpose. spending one means something.</i>
+              </div>
+            </div>
+
+            <div className="create-actions fld-reveal" style={{ animationDelay: '0.28s' }}>
+              <Btn
+                big
+                disabled={busy}
+                onClick={() =>
+                  onOpen({
+                    name: name.trim(),
+                    hostName: hostName.trim(),
+                    lane,
+                    maxSongs,
+                    chillsBudget: chills,
+                  })
+                }
               >
-                {l}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="fld-pair">
-          <div className="fld">
-            <span className="fld-label">
-              song limit <b className="fld-val">{maxSongs}</b>
-            </span>
-            <WaveSelect min={3} max={12} value={maxSongs} onChange={setMaxSongs} />
-          </div>
-          <div className="fld">
-            <span className="fld-label">
-              chills tokens <b className="fld-val">{chills} each</b>
-            </span>
-            <WaveSelect min={1} max={5} value={chills} onChange={setChills} />
-            <i className="fld-note">rare on purpose. spending one means something.</i>
-          </div>
-        </div>
-
-        <div className="create-actions">
-          <Btn ghost onClick={onBack}>
-            Back
-          </Btn>
-          <Btn
-            big
-            disabled={busy}
-            onClick={() =>
-              onOpen({
-                name: name.trim() || 'Untitled Party',
-                hostName: hostName.trim() || 'You',
-                lane,
-                maxSongs,
-                chillsBudget: chills,
-              })
-            }
-          >
-            {busy ? 'Opening…' : 'Open the lobby'}
-          </Btn>
-        </div>
+                {busy ? 'Opening…' : 'Open the lobby'}
+              </Btn>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
