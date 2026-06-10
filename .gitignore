@@ -4,7 +4,7 @@ dist/
 *.db
 *.db-journal
 
-# Claude / AI assistant files
+# local agent / editor config (not part of the app)
 .claude/
 CLAUDE.md
 CLAUDE.local.md

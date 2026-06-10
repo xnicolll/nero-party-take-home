@@ -1,5 +1,5 @@
 // ============================================================
-// NERO PARTY - shared visual atoms (ported from nero-ui.jsx)
+// NERO PARTY - shared visual atoms (grain, vinyl, album art, glyphs, starfield)
 // ============================================================
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { REACTIONS, mulberry32 } from '../lib/nero';
@@ -44,7 +44,7 @@ export function VinylArt({
   );
 }
 
-// Real album art (iTunes), with the generated vinyl as a graceful fallback.
+// real album art (iTunes); falls back to the vinyl art if it fails to load.
 export function AlbumArt({
   artworkUrl,
   hue,
@@ -201,7 +201,7 @@ export function HeatShape({
   );
 }
 
-// Parallax speck field - 3 layers, mouse + scroll (ported from nero-lobby.jsx).
+// parallax speck field - 3 layers, driven by mouse + scroll.
 export function StarField() {
   const wrap = useRef<HTMLDivElement>(null);
   const layers = useMemo(() => {

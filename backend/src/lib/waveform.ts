@@ -5,10 +5,9 @@ export interface Peak {
   w: number; // width fraction
 }
 
-// Real tracks ship no peak metadata, so we synthesize "peak zones"
-// deterministically from (id, duration). Load-bearing: bots cluster reactions
-// near peaks, clip mode starts near the hottest peak, and the client places
-// pins against the same waveform.
+// tracks ship no peak metadata, so we synthesize "peak zones" deterministically
+// from (id, duration). load-bearing: bots cluster reactions near peaks + the
+// client places pins against the same waveform.
 export function synthPeaks(trackId: string, durationSec: number): Peak[] {
   const rnd = mulberry32(seedFromId(trackId) + durationSec);
   const n = 1 + Math.floor(rnd() * 2); // 1-2 peak zones
@@ -19,9 +18,8 @@ export function synthPeaks(trackId: string, durationSec: number): Peak[] {
   return peaks.sort((a, b) => a.c - b.c);
 }
 
-// Seeded waveform bars, taller inside peak zones - verbatim shape from the
-// design's nero-data.js `waveform()`. The client regenerates these for render;
-// the server uses peaks (not bars) for logic.
+// seeded waveform bars, taller inside the peak zones. the client regenerates
+// these for render; the server uses peaks (not bars) for logic.
 export function waveform(trackId: string, peaks: Peak[], n = 110): number[] {
   const rnd = mulberry32(seedFromId(trackId) + 7919);
   const bars: number[] = [];

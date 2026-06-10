@@ -1,7 +1,7 @@
 // ============================================================
 // NERO PARTY - bot helpers (pure)
-// Ported from the design's buildSchedule. Bots cluster reactions near peaks so
-// real "syncs" happen at the drop. The engine owns the join timers + DB writes.
+// bots cluster reactions near peaks so real "syncs" happen at the drop.
+// the engine owns the join timers + DB writes.
 // ============================================================
 import { mulberry32 } from '../lib/prng.js';
 import type { Peak } from '../lib/waveform.js';
@@ -46,8 +46,7 @@ export function buildSchedule(
   return evts;
 }
 
-// Which side a bot votes, weighted by the two moments' heat (port of the
-// design's fake-vote streaming). `r` is a 0..1 random.
+// which side a bot votes, weighted by the two moments' heat. r is a 0..1 random.
 export function botVoteSide(pair: [MomentRuntime, MomentRuntime], r: number): 0 | 1 {
   const ha = pair[0].heat;
   const hb = pair[1].heat;

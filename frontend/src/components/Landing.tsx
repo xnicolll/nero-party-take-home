@@ -1,6 +1,6 @@
 // ============================================================
 // NERO PARTY - landing: one path. scroll -> learn -> start.
-// Ported from the design's nero-lobby.jsx (StarField/FilmStrip/CycleWord).
+// starfield, scroll-driven filmstrip tutorial, cycling hero word.
 // ============================================================
 import { useEffect, useRef, useState } from 'react';
 import { CYCLE_WORDS, REACTION_ORDER } from '../lib/nero';

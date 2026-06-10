@@ -1,8 +1,8 @@
 // ============================================================
 // NERO PARTY - finale playoff state machine
-// Port of nero-finale.jsx's bracket logic. Top heat-moments battle 1v1;
-// humans vote via castVote, bots vote on a stagger; majority advances.
-// Engine owns timers + crowning; this file owns the pure transitions.
+// top heat-moments battle 1v1; humans vote via castVote, bots vote on a
+// stagger; majority advances. the engine owns timers + crowning, this file
+// owns the pure transitions.
 // ============================================================
 import type { FinaleRuntime, MomentRuntime, Room } from './room/state.js';
 

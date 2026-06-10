@@ -1,8 +1,8 @@
 // ============================================================
 // NERO PARTY - heat / sync / results algorithm
-// Verbatim port of the design's nero-room.jsx, moved server-side so every
-// client and bot agrees. Heat is normalized per-minute so long songs don't
-// auto-win; 3+ distinct people within 1.6s = a "sync" bonus.
+// runs server-side so every client + bot agrees. heat is normalized
+// per-minute so long songs don't auto-win; 3+ distinct people within
+// 1.6s = a "sync" bonus.
 // ============================================================
 import { BUCKETS, REACTIONS, SYNC_BONUS, SYNC_DISTINCT, SYNC_WINDOW_MS } from './constants.js';
 import type { ReactionType } from './constants.js';
@@ -135,7 +135,7 @@ export function computeResults(room: Room): RawResults {
   return { ranked, moments, superlatives };
 }
 
-// Dominant reaction type near a moment (for the moment glyph). Port of topGlyph.
+// dominant reaction type near a moment (for the moment glyph).
 export function topGlyph(moment: MomentRuntime): ReactionType {
   const near = moment.song.pins.filter((p) => Math.abs(p.frac - moment.frac) < 0.06);
   const counts: Partial<Record<ReactionType, number>> = {};

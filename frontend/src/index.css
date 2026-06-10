@@ -3,9 +3,9 @@
 @tailwind utilities;
 
 /* ============================================================
-   NERO PARTY - design system (ported verbatim from the Claude
-   Design handoff). Light "after-hours analog" theme, ember accent,
-   Bricolage display + IBM Plex Mono, OKLCH reaction colors, grain.
+   NERO PARTY - design system. light "after-hours analog" theme,
+   ember accent, Bricolage display + IBM Plex Mono, OKLCH reaction
+   colors, film grain.
    ============================================================ */
 :root {
   --bg: #f5f1ea;

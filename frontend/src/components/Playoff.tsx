@@ -1,6 +1,6 @@
 // ============================================================
-// NERO PARTY - finale playoff (ported from nero-finale.jsx)
-// Server runs the bracket + bot votes; the client renders + casts one vote.
+// NERO PARTY - finale playoff
+// the server runs the bracket + bot votes; the client renders + casts one vote.
 // ============================================================
 import { useEffect, useRef, useState } from 'react';
 import { REACTIONS } from '../lib/nero';

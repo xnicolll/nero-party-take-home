@@ -1,5 +1,5 @@
-// Seeded PRNG - verbatim from the design's nero-data.js so the server and the
-// browser generate identical waveforms/peaks from the same seed.
+// seeded PRNG so the server + browser generate identical waveforms/peaks
+// from the same seed.
 export function mulberry32(seed: number): () => number {
   let a = seed >>> 0;
   return function () {
@@ -11,8 +11,7 @@ export function mulberry32(seed: number): () => number {
   };
 }
 
-// Stable integer seed from a track id (replaces the design's
-// `song.id.charCodeAt(1) * ...` now that ids are arbitrary strings).
+// stable integer seed from a track id (ids are arbitrary strings).
 export function seedFromId(id: string): number {
   let h = 2166136261;
   for (let i = 0; i < id.length; i++) {

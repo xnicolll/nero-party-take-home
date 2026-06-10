@@ -1,6 +1,6 @@
 // ============================================================
 // NERO PARTY - shared constants (reaction vocab, lanes, bots)
-// Ported from the design's nero-data.js so client + server agree.
+// kept in sync with the frontend so client + server agree.
 // ============================================================
 
 export type ReactionType = 'drop' | 'groove' | 'feels' | 'wtf' | 'chills';
@@ -14,7 +14,7 @@ export interface ReactionDef {
   scarce?: boolean;
 }
 
-// Curated, not generic emoji. OKLCH colors carry over verbatim from the design.
+// the five reactions: emoji glyph + OKLCH color + heat weight.
 export const REACTIONS: Record<ReactionType, ReactionDef> = {
   drop: { id: 'drop', label: 'DROP', glyph: '🫳', color: 'oklch(0.6 0.16 45)', weight: 1 },
   groove: { id: 'groove', label: 'GROOVE', glyph: '🎶', color: 'oklch(0.6 0.16 320)', weight: 1 },
@@ -40,7 +40,7 @@ export function isReactionType(x: unknown): x is ReactionType {
 export const LANES = ['Anything goes', 'Electronic', 'Indie / Alt', 'Hip-hop', 'Ambient'] as const;
 export type Lane = (typeof LANES)[number];
 
-// Bot identities (names + colors from the design's FRIENDS). Max 3 used.
+// fake guests that auto-join (staggered) so the app works solo. max 3 used.
 export const BOT_POOL = [
   { name: 'Maya', color: '#C2703E', joinAt: 2000 },
   { name: 'Theo', color: '#5F8A4E', joinAt: 4600 },
@@ -48,7 +48,7 @@ export const BOT_POOL = [
 ];
 export const MAX_BOTS = 3;
 
-// Color for the host ("You" accent in the design).
+// the host's accent color.
 export const HOST_COLOR = '#E8743B';
 
 // Colors handed to additional human guests, cycled.

@@ -1,6 +1,6 @@
 // ============================================================
-// NERO PARTY - party-room widgets (ported from nero-widgets.jsx)
-// Now read socket-fed state instead of the local simulation.
+// NERO PARTY - party-room widgets (waveform, reaction bar, playlist rail)
+// all read socket-fed state.
 // ============================================================
 import { useEffect, useMemo, useRef } from 'react';
 import { REACTIONS, REACTION_ORDER, fmtTime, waveform } from '../lib/nero';

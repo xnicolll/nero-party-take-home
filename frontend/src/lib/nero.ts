@@ -1,7 +1,7 @@
 // ============================================================
 // NERO PARTY - shared client constants + helpers
-// The non-simulation parts of the design's nero-data.js. The simulation
-// (friends, schedules, results) now lives on the server.
+// just the static bits (reactions, lanes, helpers); the live simulation
+// (bots, schedules, results) lives on the server.
 // ============================================================
 import type { Peak, ReactionType } from './types';
 
@@ -47,8 +47,8 @@ export const CYCLE_WORDS = [
   'crown',
 ];
 
-// Seeded PRNG - verbatim from the design (and the backend), so the client
-// regenerates the same waveform the server reasoned about.
+// seeded PRNG, matches the backend so the client regenerates the same
+// waveform the server reasoned about.
 export function mulberry32(seed: number): () => number {
   let a = seed >>> 0;
   return function () {

@@ -1,7 +1,7 @@
 // ============================================================
 // NERO PARTY - useRoom: socket-driven party state
 // Holds the latest snapshot and folds in live deltas (reactions, syncs,
-// leaderboard, song changes, finale). Replaces the design's local useParty.
+// leaderboard, song changes, finale).
 // ============================================================
 import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
 import { toast } from 'sonner';

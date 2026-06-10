@@ -21,7 +21,7 @@ export interface SongRuntime {
   addedById: string;
   position: number;
   peaks: Peak[];
-  // hot-path aggregates (mirror the design's song object)
+  // hot-path aggregates (heat, buckets, counts, syncs, pins)
   heat: number;
   score: number;
   buckets: number[];

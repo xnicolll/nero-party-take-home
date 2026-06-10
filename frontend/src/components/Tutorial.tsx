@@ -1,5 +1,5 @@
 // ============================================================
-// NERO PARTY - short tutorial (ported from nero-tutorial.jsx)
+// NERO PARTY - short tutorial
 // ============================================================
 import { useEffect, useState } from 'react';
 import { REACTION_ORDER } from '../lib/nero';
