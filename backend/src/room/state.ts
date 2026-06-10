@@ -6,7 +6,7 @@
 import type { Server } from 'socket.io';
 import type { ReactionType } from '../constants.js';
 import type { Peak } from '../lib/waveform.js';
-import type { Phase, SongLengthMode } from '../types.js';
+import type { Phase } from '../types.js';
 
 export interface SongRuntime {
   id: string;
@@ -40,6 +40,7 @@ export interface ParticipantState {
   chillsLeft: number;
   socketIds: Set<string>;
   connected: boolean;
+  rejoinToken: string; // per-participant secret, returned only to them, required to rejoin
 }
 
 export interface BotScheduleEvent {
@@ -77,7 +78,6 @@ export interface Room {
   lane: string;
   maxSongs: number;
   chillsBudget: number;
-  songLengthMode: SongLengthMode;
   phase: Phase;
 
   songs: SongRuntime[];
@@ -109,6 +109,8 @@ export interface Room {
   dislikes: Set<string>; // participants who disliked the current song
   dislikeTimers: NodeJS.Timeout[]; // pending bot pile-on timers
   skipping: boolean; // brief transition while a skipped song stops + fades out
+  skipTimer: NodeJS.Timeout | null; // the pending advance after a skip's grey hold
+  finaleTimers: NodeJS.Timeout[]; // per-match bot-vote / deadline / decide timers
 }
 
 const byCode = new Map<string, Room>();
@@ -129,7 +131,10 @@ export function getRoomByPartyId(id: string): Room | undefined {
 
 export function destroyRoom(room: Room): void {
   if (room.tick) clearInterval(room.tick);
+  if (room.skipTimer) clearTimeout(room.skipTimer);
   room.botTimers.forEach(clearTimeout);
+  room.finaleTimers.forEach(clearTimeout);
+  room.dislikeTimers.forEach(clearTimeout);
   byCode.delete(room.joinCode);
   byPartyId.delete(room.partyId);
 }

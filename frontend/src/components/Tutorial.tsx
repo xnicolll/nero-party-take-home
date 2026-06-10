@@ -1,7 +1,7 @@
 // ============================================================
 // NERO PARTY - short tutorial (ported from nero-tutorial.jsx)
 // ============================================================
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { REACTION_ORDER } from '../lib/nero';
 import { HeatShape, PersonDot, RGlyph, VinylArt } from './atoms';
 
@@ -84,6 +84,13 @@ export function Tutorial({ onClose }: { onClose: () => void }) {
   const step = TUT_STEPS[i];
   const last = i === TUT_STEPS.length - 1;
   const V = step.visual;
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
   return (
     <div className="tut-overlay" onClick={onClose}>
       <div className="tut-card" onClick={(e) => e.stopPropagation()}>

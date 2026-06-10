@@ -6,7 +6,6 @@ CREATE TABLE "Party" (
     "lane" TEXT NOT NULL,
     "maxSongs" INTEGER NOT NULL,
     "chillsBudget" INTEGER NOT NULL,
-    "songLengthMode" TEXT NOT NULL DEFAULT 'full',
     "phase" TEXT NOT NULL DEFAULT 'lobby',
     "hostToken" TEXT NOT NULL,
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP

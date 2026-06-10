@@ -26,9 +26,13 @@ export function Coronation({
   const moment = results.momentOfNight;
 
   useEffect(() => {
-    const t = setTimeout(() => setStage('crown'), 1900);
-    getRecs().then(setRecs);
-    return () => clearTimeout(t);
+    let alive = true;
+    const t = setTimeout(() => alive && setStage('crown'), 1900);
+    getRecs().then((r) => alive && setRecs(r));
+    return () => {
+      alive = false;
+      clearTimeout(t);
+    };
   }, [getRecs]);
 
   if (stage === 'reveal') {
@@ -67,6 +71,7 @@ export function Coronation({
                 size={160}
                 radius={18}
                 priority
+                alt={`${champ.title} by ${champ.artist}`}
               />
               <span className="crown-play">▶</span>
             </div>
@@ -100,6 +105,7 @@ export function Coronation({
                 size={160}
                 radius={18}
                 priority
+                alt={`${moment.title} by ${moment.artist}`}
               />
               <span className="moment-badge">
                 <RGlyph type={moment.glyph} size={24} />
@@ -149,7 +155,13 @@ export function Coronation({
                 }
               >
                 <div className="rec-art">
-                  <AlbumArt artworkUrl={r.artworkUrl} hue={r.hue} size={150} radius={14} />
+                  <AlbumArt
+                    artworkUrl={r.artworkUrl}
+                    hue={r.hue}
+                    size={150}
+                    radius={14}
+                    alt={`${r.title} by ${r.artist}`}
+                  />
                   <span className="rec-reason">{r.reason}</span>
                   <span className="crown-play">▶</span>
                 </div>

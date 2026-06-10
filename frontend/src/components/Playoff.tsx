@@ -18,6 +18,7 @@ function MomentCard({
   onPick,
   onHover,
   onLeave,
+  onPreview,
 }: {
   moment: MomentDTO;
   picked: boolean;
@@ -29,6 +30,7 @@ function MomentCard({
   onPick: (() => void) | null;
   onHover: () => void;
   onLeave: () => void;
+  onPreview: () => void;
 }) {
   return (
     <button
@@ -45,22 +47,35 @@ function MomentCard({
       disabled={!onPick}
     >
       <div className="mcard-top">
-        <AlbumArt artworkUrl={moment.artworkUrl} hue={moment.hue} size={72} radius={12} />
+        <AlbumArt
+          artworkUrl={moment.artworkUrl}
+          hue={moment.hue}
+          size={72}
+          radius={12}
+          alt={`${moment.title} by ${moment.artist}`}
+        />
         <RGlyph type={moment.glyph} size={26} />
       </div>
       <h3 className="mcard-title">{moment.title}</h3>
       <p className="mcard-artist">{moment.artist}</p>
       <div className="mcard-ts mono">at {moment.ts}</div>
-      <div className="mcard-playhint">
+      {/* plain span (not a nested button): tap to preview without casting a vote */}
+      <span
+        className="mcard-playhint"
+        onClick={(e) => {
+          e.stopPropagation();
+          onPreview();
+        }}
+      >
         {playing ? (
           <>
             <span className="dot" />
             playing this moment
           </>
         ) : (
-          'hover to hear it'
+          '▶ tap to hear it'
         )}
-      </div>
+      </span>
       <HeatShape buckets={moment.buckets} color={REACTIONS[moment.glyph].color} w={180} h={30} />
       <div className="mcard-votes">
         <span className="mcard-bar" style={{ width: total ? (votes / total) * 100 + '%' : 0 }} />
@@ -86,6 +101,8 @@ export function Playoff({ finale, onVote }: { finale: FinaleState; onVote: (s: 0
     };
   }, []);
 
+  const hoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const hoverPreview = (side: 0 | 1, m: MomentDTO) => {
     const a = previewRef.current;
     if (!a) return;
@@ -99,7 +116,7 @@ export function Playoff({ finale, onVote }: { finale: FinaleState; onVote: (s: 0
       } catch {
         /* ignore */
       }
-      a.volume = 0.85;
+      a.volume = 0.7;
       a.play().catch(() => {});
     };
     if (a.readyState >= 1) begin();
@@ -109,6 +126,23 @@ export function Playoff({ finale, onVote }: { finale: FinaleState; onVote: (s: 0
   const stopPreview = () => {
     previewRef.current?.pause();
     setPreviewing(null);
+  };
+  // a passing cursor shouldn't blast audio: only preview after a short hover
+  const scheduleHover = (side: 0 | 1, m: MomentDTO) => {
+    if (hoverTimer.current) clearTimeout(hoverTimer.current);
+    hoverTimer.current = setTimeout(() => hoverPreview(side, m), 260);
+  };
+  const cancelHover = () => {
+    if (hoverTimer.current) {
+      clearTimeout(hoverTimer.current);
+      hoverTimer.current = null;
+    }
+    stopPreview();
+  };
+  // explicit tap (touch / click the hint): toggle immediately
+  const togglePreview = (side: 0 | 1, m: MomentDTO) => {
+    if (previewing === side) stopPreview();
+    else hoverPreview(side, m);
   };
 
   // reset local pick when the match changes
@@ -139,7 +173,7 @@ export function Playoff({ finale, onVote }: { finale: FinaleState; onVote: (s: 0
       <h2 className="playoff-title">Which moment hit harder?</h2>
       <p className="playoff-sub">
         {picked == null && decided == null
-          ? 'Cast your vote - the room follows.'
+          ? 'Cast your vote, the room follows.'
           : decided != null
             ? 'Decided.'
             : 'The room is voting…'}
@@ -154,8 +188,9 @@ export function Playoff({ finale, onVote }: { finale: FinaleState; onVote: (s: 0
           dimmed={decided === 1}
           playing={previewing === 0}
           onPick={picked == null && decided == null ? () => pick(0) : null}
-          onHover={() => hoverPreview(0, finale.pair![0])}
-          onLeave={stopPreview}
+          onHover={() => scheduleHover(0, finale.pair![0])}
+          onLeave={cancelHover}
+          onPreview={() => togglePreview(0, finale.pair![0])}
         />
         <span className="playoff-vs">vs</span>
         <MomentCard
@@ -167,8 +202,9 @@ export function Playoff({ finale, onVote }: { finale: FinaleState; onVote: (s: 0
           dimmed={decided === 0}
           playing={previewing === 1}
           onPick={picked == null && decided == null ? () => pick(1) : null}
-          onHover={() => hoverPreview(1, finale.pair![1])}
-          onLeave={stopPreview}
+          onHover={() => scheduleHover(1, finale.pair![1])}
+          onLeave={cancelHover}
+          onPreview={() => togglePreview(1, finale.pair![1])}
         />
       </div>
     </div>

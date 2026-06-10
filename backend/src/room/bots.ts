@@ -46,21 +46,6 @@ export function buildSchedule(
   return evts;
 }
 
-// Re-express full-song peaks into a playable window [startFrac, endFrac].
-// Peaks outside the window are dropped; survivors are remapped to 0..1.
-export function windowPeaks(peaks: Peak[], startFrac: number, endFrac: number): Peak[] {
-  const span = Math.max(1e-6, endFrac - startFrac);
-  const out: Peak[] = [];
-  for (const p of peaks) {
-    if (p.c >= startFrac && p.c <= endFrac) {
-      out.push({ c: (p.c - startFrac) / span, w: p.w / span });
-    }
-  }
-  // Always give bots something to cluster on.
-  if (out.length === 0) out.push({ c: 0.5, w: 0.08 });
-  return out;
-}
-
 // Which side a bot votes, weighted by the two moments' heat (port of the
 // design's fake-vote streaming). `r` is a 0..1 random.
 export function botVoteSide(pair: [MomentRuntime, MomentRuntime], r: number): 0 | 1 {

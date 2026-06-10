@@ -43,11 +43,12 @@ export function SnippetPlayer({ track, onDone }: { track: SnippetTrack; onDone: 
       }
       a.play()
         .then(() => {
+          const target = 0.75; // comfortable preview level, not full blast
           let v = 0;
           const id = setInterval(() => {
-            v = Math.min(1, v + 0.12);
+            v = Math.min(target, v + 0.09);
             a.volume = v;
-            if (v >= 1) clearInterval(id);
+            if (v >= target) clearInterval(id);
           }, 35);
         })
         .catch(() => {});

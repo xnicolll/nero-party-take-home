@@ -3,6 +3,7 @@
 // The server is the clock. One tick loop per room advances playback, fires bot
 // reactions, races the leaderboard, and drives finale -> coronation.
 // ============================================================
+import { randomUUID } from 'crypto';
 import type { Server } from 'socket.io';
 import { prisma } from '../db.js';
 import {
@@ -13,6 +14,8 @@ import {
   MAX_BOTS,
   POSITION_BROADCAST_MS,
   REACTIONS,
+  ROOM_TTL_MS,
+  SYNC_WINDOW_MS,
   TICK_MS,
   VOTE_DEADLINE_MS,
 } from '../constants.js';
@@ -38,7 +41,7 @@ import {
   toSongDTO,
 } from '../sockets/emit.js';
 import type { MomentRuntime, Room, SongRuntime } from './state.js';
-import { currentSong, registerRoom } from './state.js';
+import { allRooms, connectedHumanCount, currentSong, destroyRoom, registerRoom } from './state.js';
 import type { Track } from '../types.js';
 
 function emitRoom(room: Room, event: string, payload: unknown): void {
@@ -93,7 +96,6 @@ export function createRoom(
     lane: string;
     maxSongs: number;
     chillsBudget: number;
-    songLengthMode: string;
   },
 ): Room {
   const room: Room = {
@@ -105,7 +107,6 @@ export function createRoom(
     lane: party.lane,
     maxSongs: party.maxSongs,
     chillsBudget: party.chillsBudget,
-    songLengthMode: party.songLengthMode === 'clip' ? 'clip' : 'full',
     phase: 'lobby',
     songs: [],
     idx: 0,
@@ -132,9 +133,28 @@ export function createRoom(
     dislikes: new Set(),
     dislikeTimers: [],
     skipping: false,
+    skipTimer: null,
+    finaleTimers: [],
   };
   registerRoom(room);
   return room;
+}
+
+// Periodically drop rooms that have had no connected humans for a while, so the
+// in-memory maps + their tick/bot/finale timers don't leak forever.
+export function startRoomSweep(): void {
+  setInterval(() => {
+    const now = Date.now();
+    for (const room of allRooms()) {
+      if (connectedHumanCount(room) > 0) {
+        room.emptySince = null;
+      } else if (room.emptySince == null) {
+        room.emptySince = now;
+      } else if (now - room.emptySince > ROOM_TTL_MS) {
+        destroyRoom(room);
+      }
+    }
+  }, 30_000).unref?.();
 }
 
 export function addParticipantToRoom(
@@ -157,6 +177,7 @@ export function addParticipantToRoom(
     chillsLeft: row.chillsLeft,
     socketIds: new Set(),
     connected: true,
+    rejoinToken: randomUUID(),
   });
 }
 
@@ -331,6 +352,7 @@ function tick(room: Room): void {
 
 // mark the current song played, then move to the next or pause for more
 function advanceAfter(room: Room): void {
+  if (room.phase !== 'party') return; // a stale skip timer must not fire mid-finale
   const song = currentSong(room);
   if (song) {
     song.played = true;
@@ -360,29 +382,43 @@ function skipCurrent(
   room.dislikeTimers.forEach(clearTimeout); // stop any pending bot pile-on
   room.dislikeTimers = [];
   if (flush && room.schedule) {
-    // host moving on: flush bot reactions so the song isn't artificially cold
-    const now = Date.now() - 5000;
+    // host moving on: flush bot reactions so the song isn't artificially cold.
+    // Spread the backdated timestamps beyond the sync window so the flush can't
+    // manufacture a phantom sync (they'd otherwise all share one timestamp).
+    let back = Date.now() - 5000;
     while (room.cursor < room.schedule.length) {
       const e = room.schedule[room.cursor++];
-      doReaction(room, song, e.participantId, e.type, e.t, now, true);
+      doReaction(room, song, e.participantId, e.type, e.t, back, true);
+      back -= SYNC_WINDOW_MS + 50;
     }
   }
   emitRoom(room, 'songSkipped', { title: song.title, reason, ...extra });
-  // hold the greyed-out transition for 3s before the next song fades in
-  setTimeout(() => {
+  // hold the greyed-out transition for 3s before the next song fades in. Tracked
+  // so enterFinale/destroyRoom can cancel it (a host can END mid-skip).
+  if (room.skipTimer) clearTimeout(room.skipTimer);
+  room.skipTimer = setTimeout(() => {
+    room.skipTimer = null;
     room.skipping = false;
     advanceAfter(room);
   }, 3000);
 }
 
 // ---- dislikes -> auto-skip --------------------------------------
+// Who counts toward the dislike majority: bots + still-connected humans (so a
+// party where people have left can still reach "more than half").
+function voterCount(room: Room): number {
+  let n = 0;
+  for (const p of room.participants.values()) if (p.isBot || p.connected) n++;
+  return n;
+}
+
 export function setDislike(room: Room, participantId: string, on: boolean): void {
-  if (room.phase !== 'party' || room.paused) return;
+  if (room.phase !== 'party' || room.paused || room.skipping) return;
   const p = room.participants.get(participantId);
   if (!p) return;
   if (on) room.dislikes.add(participantId);
   else room.dislikes.delete(participantId);
-  emitRoom(room, 'dislikeUpdate', { count: room.dislikes.size, total: room.participants.size });
+  emitRoom(room, 'dislikeUpdate', { count: room.dislikes.size, total: voterCount(room) });
   if (on && !p.isBot) rallyBots(room); // a human dislike rallies the room
   checkDislikeSkip(room);
 }
@@ -394,12 +430,11 @@ function rallyBots(room: Room): void {
     if (Math.random() > 0.55) continue; // only some bots agree
     const timer = setTimeout(
       () => {
-        if (room.phase !== 'party' || room.idx !== myIdx || room.dislikes.has(part.id)) return;
+        // bail if the song moved on, or the host paused/skipped meanwhile
+        if (room.phase !== 'party' || room.paused || room.skipping || room.idx !== myIdx) return;
+        if (room.dislikes.has(part.id)) return;
         room.dislikes.add(part.id);
-        emitRoom(room, 'dislikeUpdate', {
-          count: room.dislikes.size,
-          total: room.participants.size,
-        });
+        emitRoom(room, 'dislikeUpdate', { count: room.dislikes.size, total: voterCount(room) });
         checkDislikeSkip(room);
       },
       600 + Math.floor(Math.random() * 1400),
@@ -409,12 +444,13 @@ function rallyBots(room: Room): void {
 }
 
 function checkDislikeSkip(room: Room): void {
-  if (room.phase !== 'party') return;
-  // more than half the party disliked it -> skip
-  if (room.dislikes.size > room.participants.size / 2) {
+  if (room.phase !== 'party' || room.paused || room.skipping) return;
+  // more than half the room (connected humans + bots) disliked it -> skip
+  const total = voterCount(room);
+  if (room.dislikes.size > total / 2) {
     skipCurrent(room, 'most of the room disliked it', false, {
       dislikes: room.dislikes.size,
-      total: room.participants.size,
+      total,
     });
   }
 }
@@ -456,12 +492,14 @@ export async function addSongToRoom(
   addedById: string,
   silent = false,
 ): Promise<{ ok: boolean; reason?: string }> {
+  if (room.phase !== 'lobby' && room.phase !== 'party')
+    return { ok: false, reason: 'Party has ended' };
   if (room.songs.length >= room.maxSongs) return { ok: false, reason: 'Queue is full' };
-  const position = room.songs.length;
   const row = await prisma.queuedSong.create({
     data: {
       partyId: room.partyId,
-      position,
+      // assign position after the await so concurrent adds don't collide
+      position: room.songs.length,
       trackId: track.id,
       title: track.title,
       artist: track.artist,
@@ -473,6 +511,8 @@ export async function addSongToRoom(
       addedById,
     },
   });
+  // re-derive position from the live array length in case another add interleaved
+  row.position = room.songs.length;
   room.songs.push(makeRuntimeSong(row));
   if (!silent) emitQueue(room);
   // a song arriving during the intermission resumes playback
@@ -482,6 +522,8 @@ export async function addSongToRoom(
 
 // Remove an upcoming (not playing, not played) song from the queue.
 export function removeSong(room: Room, songId: string): { ok: boolean; reason?: string } {
+  if (room.phase !== 'lobby' && room.phase !== 'party')
+    return { ok: false, reason: 'Party has ended' };
   const idx = room.songs.findIndex((s) => s.id === songId);
   if (idx === -1) return { ok: false, reason: 'Not in the queue' };
   const song = room.songs[idx];
@@ -519,6 +561,9 @@ export async function startParty(room: Room): Promise<{ ok: boolean; reason?: st
 export function hostPause(room: Room): void {
   if (room.phase !== 'party' || room.paused) return;
   room.paused = true;
+  // freeze the room: drop pending bot dislike-rallies so nothing auto-skips while paused
+  room.dislikeTimers.forEach(clearTimeout);
+  room.dislikeTimers = [];
   emitRoom(room, 'playback', { paused: true, positionMs: room.positionMs, serverTime: Date.now() });
 }
 
@@ -554,10 +599,21 @@ export function hostEnd(room: Room): void {
 
 // ---- finale -----------------------------------------------------
 function enterFinale(room: Room): void {
+  if (room.phase === 'finale' || room.phase === 'coronation') return; // never re-enter
   if (room.tick) {
     clearInterval(room.tick);
     room.tick = null;
   }
+  // cancel any in-flight skip hold or stale finale timers before we start fresh
+  if (room.skipTimer) {
+    clearTimeout(room.skipTimer);
+    room.skipTimer = null;
+  }
+  room.skipping = false;
+  room.dislikeTimers.forEach(clearTimeout);
+  room.dislikeTimers = [];
+  room.finaleTimers.forEach(clearTimeout);
+  room.finaleTimers = [];
   room.phase = 'finale';
   prisma.party.update({ where: { id: room.partyId }, data: { phase: 'finale' } }).catch(() => {});
 
@@ -588,6 +644,9 @@ function enterFinale(room: Room): void {
 function beginMatch(room: Room): void {
   const f = room.finale;
   if (!f) return;
+  // clear the previous match's timers so a stale bot vote/deadline can't leak in
+  room.finaleTimers.forEach(clearTimeout);
+  room.finaleTimers = [];
   f.deadline = Date.now() + VOTE_DEADLINE_MS;
   // bots trickle their votes
   const pair = activePair(f);
@@ -607,11 +666,11 @@ function beginMatch(room: Room): void {
       },
       (i + 1) * BOT_VOTE_STAGGER_MS,
     );
-    room.botTimers.push(timer);
+    room.finaleTimers.push(timer);
   });
   // deadline fallback
   const dl = setTimeout(() => maybeResolve(room), VOTE_DEADLINE_MS + 200);
-  room.botTimers.push(dl);
+  room.finaleTimers.push(dl);
 }
 
 export function castVote(room: Room, participantId: string, side: 0 | 1): void {
@@ -630,7 +689,7 @@ function maybeResolve(room: Room): void {
   if (voted >= expectedVoters(room) || Date.now() >= f.deadline) {
     f.decided = decideSide(f);
     emitRoom(room, 'finaleState', toFinaleState(room));
-    setTimeout(() => doAdvance(room), DECIDE_DELAY_MS);
+    room.finaleTimers.push(setTimeout(() => doAdvance(room), DECIDE_DELAY_MS));
   }
 }
 

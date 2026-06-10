@@ -17,7 +17,6 @@ model Party {
   lane           String // genre lane, see LANES in constants
   maxSongs       Int // 3..12
   chillsBudget   Int // scarce CHILLS tokens per person (1..5)
-  songLengthMode String   @default("full") // "full" | "clip" (~45s)
   phase          String   @default("lobby") // lobby | party | finale | coronation
   hostToken      String // opaque secret; only the holder may start/skip/end
   createdAt      DateTime @default(now())

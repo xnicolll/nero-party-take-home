@@ -58,7 +58,6 @@ export function toPartyDTO(room: Room): PartyDTO {
     lane: room.lane,
     maxSongs: room.maxSongs,
     chillsBudget: room.chillsBudget,
-    songLengthMode: room.songLengthMode,
     phase: room.phase,
   };
 }
@@ -101,7 +100,6 @@ export function toCurrentDTO(room: Room): CurrentDTO | null {
     positionMs: room.positionMs,
     effectiveDurationMs: room.effectiveDurationMs,
     clipStartMs: room.clipStartMs,
-    mode: room.songLengthMode,
     song: toSongDTO(room, s),
   };
 }
@@ -166,6 +164,7 @@ export function toSnapshot(room: Room, participantId: string): Snapshot {
       color: me?.color ?? '#E8743B',
       isHost: me?.isHost ?? false,
       chillsLeft: me?.chillsLeft ?? 0,
+      rejoinToken: me?.rejoinToken ?? '',
     },
     participants: [...room.participants.values()].map(toParticipantDTO),
     songs: room.songs.map((s) => toSongDTO(room, s)),

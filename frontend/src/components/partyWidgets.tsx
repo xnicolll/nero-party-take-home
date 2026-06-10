@@ -95,16 +95,19 @@ export function ReactionBar({
   chillsLeft: number;
   disabled?: boolean;
 }) {
+  // read fresh chills inside the stable key handler without re-subscribing
+  const chillsRef = useRef(chillsLeft);
+  chillsRef.current = chillsLeft;
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.repeat) return;
+      if (e.repeat || disabled) return;
       // don't hijack keys while someone is typing in a field (search, names…)
       const el = document.activeElement;
       if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA')) return;
       // space = chills (the scarce one) - react without looking
       if (e.code === 'Space' || e.key === ' ') {
         e.preventDefault();
-        onReact('chills');
+        if (chillsRef.current > 0) onReact('chills'); // don't fire when you're out
         return;
       }
       const i = parseInt(e.key, 10);
@@ -112,7 +115,7 @@ export function ReactionBar({
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [onReact]);
+  }, [onReact, disabled]);
   return (
     <div className="rbar">
       {REACTION_ORDER.map((id, i) => {
@@ -126,7 +129,9 @@ export function ReactionBar({
             style={{ ['--rc' as string]: r.color }}
             onClick={() => onReact(id)}
           >
-            <span className="rchip-glyph">{r.glyph}</span>
+            <span className="rchip-glyph" aria-hidden>
+              {r.glyph}
+            </span>
             <span className="rchip-label">{r.label}</span>
             <span className="rchip-key mono">
               {r.scarce ? `space · ${chillsLeft} left` : `key ${i + 1}`}
@@ -161,17 +166,23 @@ export function PlaylistRail({
     return arr;
   }, [songs, currentId]);
 
-  const prevPos = useRef<Record<string, number>>({});
-  const moves: Record<string, number> = {};
-  ranked.forEach((s, i) => {
-    const prev = prevPos.current[s.id];
-    if (prev != null && prev !== i) moves[s.id] = prev > i ? 1 : -1;
-  });
-  useEffect(() => {
-    const next: Record<string, number> = {};
-    ranked.forEach((s, i) => (next[s.id] = i));
-    prevPos.current = next;
-  });
+  // Track rank changes and hold the ▲/▼ arrow for ~1.6s. We only re-snapshot
+  // ranks when the order actually changes (not on every 60ms re-render), so the
+  // arrow doesn't get overwritten the very next frame.
+  const prevRank = useRef<Record<string, number>>({});
+  const moveAt = useRef<Record<string, { dir: number; at: number }>>({});
+  const prevSig = useRef('');
+  const sig = ranked.map((r) => r.id).join(',');
+  if (sig !== prevSig.current) {
+    const stamp = Date.now();
+    ranked.forEach((s, i) => {
+      const prev = prevRank.current[s.id];
+      if (prev != null && prev !== i) moveAt.current[s.id] = { dir: prev > i ? 1 : -1, at: stamp };
+      prevRank.current[s.id] = i;
+    });
+    prevSig.current = sig;
+  }
+  const nowMs = Date.now();
 
   return (
     <div className="rail-track">
@@ -179,7 +190,8 @@ export function PlaylistRail({
         {songs.map((s, i) => {
           const pos = ranked.findIndex((r) => r.id === s.id);
           const active = s.played || s.id === currentId;
-          const mv = moves[s.id] || 0;
+          const m = moveAt.current[s.id];
+          const mv = m && nowMs - m.at < 1600 ? m.dir : 0;
           const live = s.id === currentId;
           return (
             <div
@@ -194,7 +206,10 @@ export function PlaylistRail({
               <span className="pcard-rank mono">
                 {active ? String(pos + 1).padStart(2, '0') : '-'}
               </span>
-              <span className={'pcard-delta' + (mv > 0 ? ' up' : mv < 0 ? ' down' : '')}>
+              <span
+                className={'pcard-delta' + (mv > 0 ? ' up' : mv < 0 ? ' down' : '')}
+                aria-hidden
+              >
                 {mv > 0 ? '▲' : mv < 0 ? '▼' : ''}
               </span>
               <AlbumArt artworkUrl={s.artworkUrl} hue={s.hue} size={44} radius={8} />
@@ -213,9 +228,10 @@ export function PlaylistRail({
                 <button
                   className="pcard-remove"
                   title="remove from queue"
+                  aria-label={`Remove ${s.title} from the queue`}
                   onClick={() => onRemove(s.id)}
                 >
-                  ✕
+                  <span aria-hidden>✕</span>
                 </button>
               )}
             </div>

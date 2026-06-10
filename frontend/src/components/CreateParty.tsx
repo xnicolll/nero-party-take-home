@@ -14,26 +14,46 @@ export interface CreateConfig {
   chillsBudget: number;
 }
 
-// soundwave-style stepped selector
+// soundwave-style stepped selector (keyboard-operable slider)
 function WaveSelect({
   min,
   max,
   value,
   onChange,
+  label,
 }: {
   min: number;
   max: number;
   value: number;
   onChange: (v: number) => void;
+  label: string;
 }) {
   const n = max - min + 1;
+  const onKey = (e: React.KeyboardEvent) => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      onChange(Math.min(max, value + 1));
+    } else if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') {
+      e.preventDefault();
+      onChange(Math.max(min, value - 1));
+    } else if (e.key === 'Home') {
+      e.preventDefault();
+      onChange(min);
+    } else if (e.key === 'End') {
+      e.preventDefault();
+      onChange(max);
+    }
+  };
   return (
     <div
       className="wavesel"
       role="slider"
+      tabIndex={0}
+      aria-label={label}
       aria-valuemin={min}
       aria-valuemax={max}
       aria-valuenow={value}
+      onKeyDown={onKey}
     >
       {Array.from({ length: n }, (_, k) => {
         const v = min + k;
@@ -134,7 +154,7 @@ export function CreateParty({
               style={{ animationDelay: closing ? '0s' : '0s' }}
             >
               <span className="fld-label">
-                genre lane <i className="fld-note">- songs compete against equals</i>
+                genre lane <i className="fld-note">· songs compete against equals</i>
               </span>
               <div className="lane-row">
                 {LANES.map((l) => (
@@ -157,13 +177,25 @@ export function CreateParty({
                 <span className="fld-label">
                   song limit <b className="fld-val">{maxSongs}</b>
                 </span>
-                <WaveSelect min={3} max={12} value={maxSongs} onChange={setMaxSongs} />
+                <WaveSelect
+                  min={3}
+                  max={12}
+                  value={maxSongs}
+                  onChange={setMaxSongs}
+                  label="Song limit"
+                />
               </div>
               <div className="fld">
                 <span className="fld-label">
                   chills tokens <b className="fld-val">{chills} each</b>
                 </span>
-                <WaveSelect min={1} max={5} value={chills} onChange={setChills} />
+                <WaveSelect
+                  min={1}
+                  max={5}
+                  value={chills}
+                  onChange={setChills}
+                  label="Chills tokens per person"
+                />
                 <i className="fld-note">rare on purpose. spending one means something.</i>
               </div>
             </div>

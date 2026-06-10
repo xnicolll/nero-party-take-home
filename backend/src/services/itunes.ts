@@ -61,9 +61,10 @@ function normalize(r: any): Track | null {
 }
 
 // short cache so repeated genre/artist lookups (seed + recs) don't burn the
-// iTunes Search rate limit (~20 req/min/IP)
+// iTunes Search rate limit (~20 req/min/IP). Size-capped so it can't grow forever.
 const cache = new Map<string, { tracks: Track[]; at: number }>();
 const CACHE_TTL = 60_000;
+const CACHE_MAX = 200;
 
 export async function searchTracks(query: string, limit = 12): Promise<Track[]> {
   const q = query.trim();
@@ -77,7 +78,13 @@ export async function searchTracks(query: string, limit = 12): Promise<Track[]> 
     const tracks = (json?.results ?? [])
       .map(normalize)
       .filter((t: Track | null): t is Track => t !== null);
-    if (tracks.length) cache.set(key, { tracks, at: Date.now() });
+    if (tracks.length) {
+      if (cache.size >= CACHE_MAX) {
+        const oldest = cache.keys().next().value; // Map keeps insertion order
+        if (oldest) cache.delete(oldest);
+      }
+      cache.set(key, { tracks, at: Date.now() });
+    }
     return tracks;
   } catch {
     return [];

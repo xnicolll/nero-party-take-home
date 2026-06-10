@@ -3216,3 +3216,71 @@ html[data-theme='dark'] .ambient-img {
 .rec-card:hover .crown-play {
   opacity: 1;
 }
+
+/* ============================================================
+   v12 - QA pass: focus rings, title clamp, touch affordances, scroll cue
+   ============================================================ */
+
+/* NP-9: a visible keyboard focus indicator on every control */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+/* pills/chips read better with an inset ring than an offset outline */
+.nbtn:focus-visible,
+.rchip:focus-visible,
+.lane-chip:focus-visible,
+.host-btn:focus-visible,
+.transport-btn:focus-visible,
+.dislike-btn:focus-visible,
+.r2-iconbtn:focus-visible,
+.leave-btn:focus-visible,
+.tut-next:focus-visible,
+.crown-card:focus-visible,
+.mcard:focus-visible,
+.rec-card:focus-visible,
+.pillnav-link:focus-visible,
+.invite-chip:focus-visible,
+.wavesel:focus-visible,
+.theme-toggle:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 2px var(--bg),
+    0 0 0 4px var(--accent);
+}
+
+/* NP-12: long now-playing titles must not blow out the stage */
+.stage-np {
+  max-width: min(680px, 72vw);
+}
+.stage-title {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+
+/* NP-19: on touch (no hover), reveal the hover-only affordances */
+@media (hover: none) {
+  .pcard-remove,
+  .crown-play {
+    opacity: 1;
+  }
+  .crown-play {
+    background: color-mix(in oklab, #14100c 20%, transparent);
+  }
+}
+.mcard-playhint {
+  cursor: pointer;
+}
+
+/* NP-33: fade the scrollable edge so hidden overflow is discoverable */
+.rail-track {
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 26px), transparent 100%);
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 26px), transparent 100%);
+}
+.qstrip {
+  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 34px), transparent 100%);
+  mask-image: linear-gradient(to right, #000 calc(100% - 34px), transparent 100%);
+}

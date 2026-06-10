@@ -1,7 +1,6 @@
 // Mirror of the backend's wire DTOs (backend/src/types.ts).
 export type Phase = 'landing' | 'create' | 'lobby' | 'party' | 'finale' | 'coronation';
 export type ServerPhase = 'lobby' | 'party' | 'finale' | 'coronation';
-export type SongLengthMode = 'full' | 'clip';
 export type ReactionType = 'drop' | 'groove' | 'feels' | 'wtf' | 'chills';
 
 export interface Peak {
@@ -63,7 +62,6 @@ export interface PartyDTO {
   lane: string;
   maxSongs: number;
   chillsBudget: number;
-  songLengthMode: SongLengthMode;
   phase: ServerPhase;
 }
 
@@ -74,7 +72,6 @@ export interface CurrentDTO {
   positionMs: number;
   effectiveDurationMs: number;
   clipStartMs: number;
-  mode: SongLengthMode;
   song: SongDTO;
 }
 
@@ -126,7 +123,14 @@ export interface ResultsDTO {
 
 export interface Snapshot {
   party: PartyDTO;
-  you: { participantId: string; name: string; color: string; isHost: boolean; chillsLeft: number };
+  you: {
+    participantId: string;
+    name: string;
+    color: string;
+    isHost: boolean;
+    chillsLeft: number;
+    rejoinToken: string;
+  };
   participants: ParticipantDTO[];
   songs: SongDTO[];
   current: CurrentDTO | null;

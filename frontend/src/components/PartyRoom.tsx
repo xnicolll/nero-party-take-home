@@ -17,6 +17,7 @@ import type { Burst, LivePin } from '../hooks/useRoom';
 import { AlbumArt, AmbientBackground, Btn, Eyebrow, PersonDot } from './atoms';
 import { PlaylistRail, ReactionBar, WavePlayer } from './partyWidgets';
 import { SongSearch } from './SongSearch';
+import { Modal } from './Modal';
 
 interface PartyRoomProps {
   party: PartyDTO;
@@ -78,6 +79,7 @@ export function PartyRoom({
   skipping,
 }: PartyRoomProps) {
   const [showAdd, setShowAdd] = useState(false);
+  const [confirmEnd, setConfirmEnd] = useState(false);
   const liveSong = songs.find((s) => s.id === current.song.id) ?? current.song;
   const adder = participants.find((p) => p.id === liveSong.addedById);
   const now = Date.now();
@@ -98,8 +100,9 @@ export function PartyRoom({
             className="r2-iconbtn r2-add glass"
             onClick={() => setShowAdd((s) => !s)}
             title="add a song"
+            aria-label={showAdd ? 'Close song search' : 'Add a song to the queue'}
           >
-            {showAdd ? '×' : '＋'}
+            <span aria-hidden>{showAdd ? '×' : '＋'}</span>
           </button>
           <div className="r2-titles">
             <span className="r2-name">{party.name}</span>
@@ -121,18 +124,27 @@ export function PartyRoom({
               />
             ))}
           </div>
-          <button className="r2-iconbtn glass" onClick={onHelp} title="how it works">
-            ?
+          <button
+            className="r2-iconbtn glass"
+            onClick={onHelp}
+            title="how it works"
+            aria-label="How it works"
+          >
+            <span aria-hidden>?</span>
           </button>
           <button className="leave-btn" onClick={onLeave} title="leave the party">
             leave
           </button>
           {isHost && (
             <div className="r2-host mono">
-              <button className="host-btn" onClick={onSkip}>
-                SKIP ▸▸
+              <button className="host-btn" onClick={onSkip} aria-label="Skip this song">
+                SKIP <span aria-hidden>▸▸</span>
               </button>
-              <button className="host-btn host-end" onClick={onEnd}>
+              <button
+                className="host-btn host-end"
+                onClick={() => setConfirmEnd(true)}
+                aria-label="End the party"
+              >
                 END
               </button>
             </div>
@@ -175,6 +187,7 @@ export function PartyRoom({
                 size={196}
                 radius={22}
                 priority
+                alt={`${liveSong.title} by ${liveSong.artist}`}
               />
             </div>
             <div>
@@ -202,7 +215,7 @@ export function PartyRoom({
             <ReactionBar onReact={onReact} chillsLeft={chillsLeft} />
           </div>
           <p className="stage-keys mono">
-            react without looking - keys 1-4, space for chills. music is meant to be enjoyed, not
+            react without looking · keys 1-4, space for chills. music is meant to be enjoyed, not
             stared at.
           </p>
 
@@ -211,6 +224,7 @@ export function PartyRoom({
               className={'transport-btn glass' + (paused ? ' is-paused' : '')}
               onClick={onTogglePlay}
               disabled={!isHost}
+              aria-label={paused ? 'Resume playback for everyone' : 'Pause playback for everyone'}
               title={
                 isHost
                   ? paused
@@ -219,19 +233,32 @@ export function PartyRoom({
                   : 'host controls playback'
               }
             >
-              {paused ? '▶' : '❚❚'}
+              <span aria-hidden>{paused ? '▶' : '❚❚'}</span>
             </button>
             {isHost && (
-              <button className="transport-btn glass" onClick={onSkip} title="skip for everyone">
-                ▸▸
+              <button
+                className="transport-btn glass"
+                onClick={onSkip}
+                title="skip for everyone"
+                aria-label="Skip this song for everyone"
+              >
+                <span aria-hidden>▸▸</span>
               </button>
             )}
             <button
               className={'dislike-btn glass' + (disliked ? ' is-on' : '')}
               onClick={() => onDislike(!disliked)}
-              title={disliked ? 'remove your dislike' : 'not feeling it? the room can vote to skip'}
+              disabled={paused || skipping}
+              aria-pressed={disliked}
+              title={
+                paused
+                  ? 'playback is paused'
+                  : disliked
+                    ? 'remove your dislike'
+                    : 'not feeling it? the room can vote to skip'
+              }
             >
-              👎 <span>{disliked ? 'disliked' : 'dislike'}</span>
+              <span aria-hidden>👎</span> <span>{disliked ? 'disliked' : 'dislike'}</span>
               {dislikeCount > 0 && (
                 <b className="dislike-count mono">
                   {dislikeCount}/{dislikeTotal}
@@ -243,7 +270,7 @@ export function PartyRoom({
                 ? 'paused by host'
                 : isHost
                   ? 'you control playback'
-                  : 'tap a feeling · keys 1-4 + space'}
+                  : 'host controls playback'}
             </span>
           </div>
         </main>
@@ -271,6 +298,26 @@ export function PartyRoom({
           </div>
         </div>
       )}
+
+      <Modal open={confirmEnd} onClose={() => setConfirmEnd(false)}>
+        <div className="confirm-card glass">
+          <h3 className="confirm-title">End the party?</h3>
+          <p className="confirm-sub">This crowns the winners for everyone. You can't undo it.</p>
+          <div className="confirm-actions">
+            <Btn ghost onClick={() => setConfirmEnd(false)}>
+              Keep playing
+            </Btn>
+            <Btn
+              onClick={() => {
+                setConfirmEnd(false);
+                onEnd();
+              }}
+            >
+              End party
+            </Btn>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

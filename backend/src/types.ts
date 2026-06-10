@@ -6,7 +6,6 @@ import type { ReactionType } from './constants.js';
 import type { Peak } from './lib/waveform.js';
 
 export type Phase = 'lobby' | 'party' | 'finale' | 'coronation';
-export type SongLengthMode = 'full' | 'clip';
 
 // A normalized track (search/trending results).
 export interface Track {
@@ -58,7 +57,6 @@ export interface PartyDTO {
   lane: string;
   maxSongs: number;
   chillsBudget: number;
-  songLengthMode: SongLengthMode;
   phase: Phase;
 }
 
@@ -69,7 +67,6 @@ export interface CurrentDTO {
   positionMs: number;
   effectiveDurationMs: number;
   clipStartMs: number;
-  mode: SongLengthMode;
   song: SongDTO;
 }
 
@@ -127,7 +124,14 @@ export interface ResultsDTO {
 
 export interface Snapshot {
   party: PartyDTO;
-  you: { participantId: string; name: string; color: string; isHost: boolean; chillsLeft: number };
+  you: {
+    participantId: string;
+    name: string;
+    color: string;
+    isHost: boolean;
+    chillsLeft: number;
+    rejoinToken: string;
+  };
   participants: ParticipantDTO[];
   songs: SongDTO[];
   current: CurrentDTO | null;

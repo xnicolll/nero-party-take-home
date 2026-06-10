@@ -46,6 +46,27 @@ function cleanName(name: unknown, fallback: string): string {
   return s ? s.slice(0, 24) : fallback;
 }
 
+// The client sends a track from our own iTunes search, but never trust it: clamp
+// durationSec (drives the playback clock + score) and coerce everything else.
+function sanitizeTrack(t: any): Track | null {
+  if (!t || typeof t !== 'object') return null;
+  const id = String(t.id ?? '').trim();
+  const streamUrl = String(t.streamUrl ?? '').trim();
+  if (!id || !/^https?:\/\//.test(streamUrl)) return null;
+  const dur = Number(t.durationSec);
+  const hue = Number(t.hue);
+  return {
+    id,
+    title: String(t.title ?? 'Untitled').slice(0, 200),
+    artist: String(t.artist ?? 'Unknown').slice(0, 200),
+    durationSec: Number.isFinite(dur) ? Math.min(30, Math.max(1, Math.round(dur))) : 30,
+    artworkUrl: t.artworkUrl ? String(t.artworkUrl).slice(0, 500) : null,
+    genre: t.genre ? String(t.genre).slice(0, 100) : null,
+    streamUrl: streamUrl.slice(0, 500),
+    hue: Number.isFinite(hue) ? (((hue % 360) + 360) % 360) | 0 : 0,
+  };
+}
+
 function roomFromSocket(socket: Socket): Room | undefined {
   const d = socket.data as Partial<SocketData>;
   return d.partyId ? getRoomByPartyId(d.partyId) : undefined;
@@ -70,7 +91,6 @@ export function registerSocketHandlers(io: Server): void {
             lane,
             maxSongs: clamp(payload?.maxSongs, 3, 12, 5),
             chillsBudget: clamp(payload?.chillsBudget, 1, 5, 3),
-            songLengthMode: payload?.songLengthMode === 'clip' ? 'clip' : 'full',
             hostToken: randomUUID(),
             phase: 'lobby',
           },
@@ -110,43 +130,49 @@ export function registerSocketHandlers(io: Server): void {
 
     // ---- join via share link ----
     socket.on('joinParty', async (payload: any, ack?: (r: any) => void) => {
-      const room = getRoomByCode(String(payload?.joinCode ?? '').toUpperCase());
-      if (!room) return ack?.({ ok: false, reason: 'Party not found' });
-      if (room.phase === 'coronation') return ack?.({ ok: false, reason: 'This party has ended' });
-      const p = await prisma.participant.create({
-        data: {
+      try {
+        const room = getRoomByCode(String(payload?.joinCode ?? '').toUpperCase());
+        if (!room) return ack?.({ ok: false, reason: 'Party not found' });
+        if (room.phase === 'coronation')
+          return ack?.({ ok: false, reason: 'This party has ended' });
+        const p = await prisma.participant.create({
+          data: {
+            partyId: room.partyId,
+            name: cleanName(payload?.name, 'Guest'),
+            color: nextGuestColor(room),
+            isHost: false,
+            chillsLeft: room.chillsBudget,
+          },
+        });
+        addParticipantToRoom(room, p);
+        room.participants.get(p.id)!.socketIds.add(socket.id);
+        room.emptySince = null;
+        socket.join(room.joinCode);
+        socket.data = {
           partyId: room.partyId,
-          name: cleanName(payload?.name, 'Guest'),
-          color: nextGuestColor(room),
+          participantId: p.id,
+          joinCode: room.joinCode,
           isHost: false,
-          chillsLeft: room.chillsBudget,
-        },
-      });
-      addParticipantToRoom(room, p);
-      room.participants.get(p.id)!.socketIds.add(socket.id);
-      socket.join(room.joinCode);
-      socket.data = {
-        partyId: room.partyId,
-        participantId: p.id,
-        joinCode: room.joinCode,
-        isHost: false,
-      } satisfies SocketData;
-      socket.to(room.joinCode).emit('participantJoined', {
-        participant: {
-          id: p.id,
-          name: p.name,
-          color: p.color,
-          isBot: false,
-          isHost: false,
-          connected: true,
-        },
-      });
-      ack?.({
-        ok: true,
-        partyId: room.partyId,
-        participantId: p.id,
-        snapshot: toSnapshot(room, p.id),
-      });
+        } satisfies SocketData;
+        socket.to(room.joinCode).emit('participantJoined', {
+          participant: {
+            id: p.id,
+            name: p.name,
+            color: p.color,
+            isBot: false,
+            isHost: false,
+            connected: true,
+          },
+        });
+        ack?.({
+          ok: true,
+          partyId: room.partyId,
+          participantId: p.id,
+          snapshot: toSnapshot(room, p.id),
+        });
+      } catch {
+        ack?.({ ok: false, reason: 'Could not join party' });
+      }
     });
 
     // ---- reconnect / second tab ----
@@ -155,8 +181,12 @@ export function registerSocketHandlers(io: Server): void {
       if (!room) return ack?.({ ok: false, reason: 'Party ended' });
       const p = room.participants.get(String(payload?.participantId ?? ''));
       if (!p) return ack?.({ ok: false, reason: 'Not in this party' });
+      // a known id alone isn't enough (ids are broadcast); require the secret
+      if (payload?.rejoinToken !== p.rejoinToken)
+        return ack?.({ ok: false, reason: 'Not in this party' });
       p.socketIds.add(socket.id);
       p.connected = true;
+      room.emptySince = null;
       const isHost = p.isHost && payload?.hostToken === room.hostToken;
       socket.join(room.joinCode);
       socket.data = {
@@ -187,13 +217,17 @@ export function registerSocketHandlers(io: Server): void {
 
     // ---- add a song to the queue ----
     socket.on('addSong', async (payload: any, ack?: (r: any) => void) => {
-      const room = roomFromSocket(socket);
-      if (!room) return ack?.({ ok: false, reason: 'No party' });
-      let t: Track | null = payload?.track ?? null;
-      if (!t && payload?.trackId) t = await getTrack(String(payload.trackId));
-      if (!t || !t.id) return ack?.({ ok: false, reason: 'Track unavailable' });
-      const res = await addSongToRoom(room, t, (socket.data as SocketData).participantId);
-      ack?.(res);
+      try {
+        const room = roomFromSocket(socket);
+        if (!room) return ack?.({ ok: false, reason: 'No party' });
+        let t: Track | null = payload?.track ? sanitizeTrack(payload.track) : null;
+        if (!t && payload?.trackId) t = await getTrack(String(payload.trackId));
+        if (!t || !t.id) return ack?.({ ok: false, reason: 'Track unavailable' });
+        const res = await addSongToRoom(room, t, (socket.data as SocketData).participantId);
+        ack?.(res);
+      } catch {
+        ack?.({ ok: false, reason: 'Could not add song' });
+      }
     });
 
     // ---- remove a song from the queue ----
@@ -288,11 +322,14 @@ export function registerSocketHandlers(io: Server): void {
       const p = room.participants.get(d.participantId ?? '');
       if (p) {
         p.socketIds.delete(socket.id);
-        p.connected = false;
-        prisma.participant
-          .update({ where: { id: p.id }, data: { connected: false } })
-          .catch(() => {});
-        socket.to(room.joinCode).emit('participantLeft', { participantId: p.id });
+        // only go offline once every tab/socket for this person is gone
+        if (p.socketIds.size === 0) {
+          p.connected = false;
+          prisma.participant
+            .update({ where: { id: p.id }, data: { connected: false } })
+            .catch(() => {});
+          socket.to(room.joinCode).emit('participantLeft', { participantId: p.id });
+        }
       }
       socket.leave(room.joinCode);
       socket.data = {};

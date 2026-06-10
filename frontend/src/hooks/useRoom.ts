@@ -4,6 +4,7 @@
 // leaderboard, song changes, finale). Replaces the design's local useParty.
 // ============================================================
 import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
+import { toast } from 'sonner';
 import { socket, emitAck } from '../lib/socket';
 import type {
   CurrentDTO,
@@ -92,6 +93,8 @@ type Action =
   | { type: 'localDislike'; on: boolean }
   | { type: 'songSkipped' }
   | { type: 'reset' };
+
+const PIN_CAP = 80; // most recent live pins kept on the waveform
 
 function recompute(song: SongDTO): number {
   return song.heat / (song.durationSec / 60);
@@ -207,7 +210,7 @@ function reducer(state: RoomState, action: Action): RoomState {
               name: r.participantName,
               t: Date.now(),
             },
-          ]
+          ].slice(-PIN_CAP) // keep the DOM bounded over a full song
         : state.pins;
       return { ...state, songs, pins };
     }
@@ -260,6 +263,7 @@ interface Creds {
   partyId: string;
   participantId: string;
   hostToken?: string;
+  rejoinToken?: string;
   joinCode: string;
 }
 function saveCreds(c: Creds) {
@@ -355,6 +359,10 @@ export function useRoom() {
       dispatch({ type: 'songSkipped' });
       setSkipEvent({ title: d.title, reason: d.reason, n: ++skipN.current });
     });
+    // server-pushed failures (e.g. start party with <2 guests / no songs)
+    socket.on('errorMsg', (d: { message?: string }) =>
+      toast.error(d?.message ?? 'Something went wrong'),
+    );
 
     return () => {
       socket.off('connect', onConnect);
@@ -374,6 +382,7 @@ export function useRoom() {
       socket.off('tick');
       socket.off('dislikeUpdate');
       socket.off('songSkipped');
+      socket.off('errorMsg');
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -443,6 +452,7 @@ export function useRoom() {
           partyId: r.partyId,
           participantId: r.participantId,
           hostToken: r.hostToken,
+          rejoinToken: r.snapshot?.you?.rejoinToken,
           joinCode: r.joinCode,
         });
         dispatch({ type: 'snapshot', snap: r.snapshot });
@@ -455,7 +465,12 @@ export function useRoom() {
   const joinParty = useCallback(async (joinCode: string, name: string) => {
     const r = await emitAck<any>('joinParty', { joinCode, name });
     if (r?.ok) {
-      saveCreds({ partyId: r.partyId, participantId: r.participantId, joinCode });
+      saveCreds({
+        partyId: r.partyId,
+        participantId: r.participantId,
+        rejoinToken: r.snapshot?.you?.rejoinToken,
+        joinCode,
+      });
       dispatch({ type: 'snapshot', snap: r.snapshot });
     }
     return r;

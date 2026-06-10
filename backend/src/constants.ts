@@ -57,14 +57,10 @@ export const GUEST_COLORS = ['#41769E', '#A8862E', '#3E8A7A', '#B5527A', '#6E6BB
 // Engine tuning.
 export const BUCKETS = 48; // heat resolution along a song
 export const TICK_MS = 150; // authoritative loop cadence
-export const CLIP_MS = 45_000; // clip-mode window length
 export const SYNC_WINDOW_MS = 1600; // 3+ distinct people within this => sync
 export const SYNC_DISTINCT = 3;
 export const SYNC_BONUS = 3;
 export const POSITION_BROADCAST_MS = 1000; // light position keepalive cadence
-
-// Clip-mode: start the window this many ms before the hottest peak.
-export const CLIP_LEAD_MS = 6000;
 
 // Finale timing.
 export const VOTE_DEADLINE_MS = 12_000; // auto-resolve a match if not everyone voted

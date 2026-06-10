@@ -30,6 +30,16 @@ export function Modal({
     return () => clearTimeout(t);
   }, [open]);
 
+  // Escape closes the modal
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [open, onClose]);
+
   if (!render) return null;
   return (
     <div className={'modal-scrim' + (closing ? ' closing' : '')} onClick={onClose}>

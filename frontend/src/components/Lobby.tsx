@@ -41,7 +41,7 @@ export function Lobby({
   const [showSongs, setShowSongs] = useState(false);
   const [lastJoined, setLastJoined] = useState<string | null>(null);
   const [snippet, setSnippet] = useState<SnippetTrack | null>(null);
-  const prevCount = useRef(participants.length);
+  const prevIds = useRef<Set<string>>(new Set(participants.map((p) => p.id)));
   const promptedRef = useRef(false);
 
   // prompt the host to add songs the moment they land in an empty lobby
@@ -59,22 +59,23 @@ export function Lobby({
   const inviteUrl = `${window.location.host}/j/${party.joinCode}`;
 
   useEffect(() => {
-    if (participants.length > prevCount.current) {
-      const newest = participants[participants.length - 1];
-      if (newest && newest.id !== youId) setLastJoined(newest.name);
-    }
-    prevCount.current = participants.length;
+    // announce genuinely-new people by id (handles several arriving at once)
+    const fresh = participants.filter((p) => !prevIds.current.has(p.id) && p.id !== youId);
+    if (fresh.length && prevIds.current.size > 0) setLastJoined(fresh[fresh.length - 1].name);
+    prevIds.current = new Set(participants.map((p) => p.id));
   }, [participants, youId]);
 
-  // even distribution; new nodes grow outward from the center (design rAF)
+  // even distribution; new nodes grow outward from the center (design rAF).
+  // Pauses when the tab is hidden, and holds still under reduced-motion.
   useEffect(() => {
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     let raf = 0;
     let last = performance.now();
     const R = 168;
     const tick = (now: number) => {
       const dt = Math.min(0.05, (now - last) / 1000);
       last = now;
-      rotRef.current += dt * 6;
+      if (!reduce) rotRef.current += dt * 6; // don't spin under reduced-motion
       const field = fieldRef.current;
       if (field) {
         const arms = [...field.querySelectorAll<HTMLElement>('.lobby-node-arm')];
@@ -85,8 +86,8 @@ export function Lobby({
           if (!nodesRef.current[id]) nodesRef.current[id] = { ang: target, r: 0 };
           const node = nodesRef.current[id];
           const d = ((target - node.ang + 540) % 360) - 180;
-          node.ang += d * 0.07;
-          node.r += (R - node.r) * 0.06;
+          node.ang += d * (reduce ? 0.3 : 0.07);
+          node.r += (R - node.r) * (reduce ? 0.3 : 0.06);
           const a = (node.ang * Math.PI) / 180;
           arm.style.setProperty('--nx', Math.cos(a) * node.r + 'px');
           arm.style.setProperty('--ny', Math.sin(a) * node.r * 0.82 + 'px');
@@ -95,16 +96,34 @@ export function Lobby({
       }
       raf = requestAnimationFrame(tick);
     };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
+    const start = () => {
+      last = performance.now();
+      raf = requestAnimationFrame(tick);
+    };
+    const onVis = () => {
+      if (document.hidden) {
+        cancelAnimationFrame(raf);
+        raf = 0;
+      } else if (!raf) start();
+    };
+    start();
+    document.addEventListener('visibilitychange', onVis);
+    return () => {
+      cancelAnimationFrame(raf);
+      document.removeEventListener('visibilitychange', onVis);
+    };
   }, []);
 
   const copy = () => {
-    try {
-      navigator.clipboard.writeText(`${window.location.origin}/j/${party.joinCode}`);
-    } catch {}
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1800);
+    const url = `${window.location.origin}/j/${party.joinCode}`;
+    // only claim success if the clipboard write actually resolves
+    navigator.clipboard?.writeText(url).then(
+      () => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 1800);
+      },
+      () => {},
+    );
   };
 
   return (
@@ -151,7 +170,7 @@ export function Lobby({
 
         <div className="lobby-feed">
           {songs.length === 0 ? (
-            <span className="lobby-wait">the queue is empty - add songs to play</span>
+            <span className="lobby-wait">the queue is empty · add songs to play</span>
           ) : participants.length <= 1 ? (
             <span className="lobby-wait">waiting for friends…</span>
           ) : lastJoined ? (
@@ -217,6 +236,7 @@ export function Lobby({
                     <button
                       className="search-row-btn mono"
                       title="preview"
+                      aria-label={`Preview ${s.title}`}
                       onClick={() =>
                         setSnippet({
                           title: s.title,
@@ -228,14 +248,15 @@ export function Lobby({
                         })
                       }
                     >
-                      ▶
+                      <span aria-hidden>▶</span>
                     </button>
                     <button
                       className="search-row-btn remove mono"
                       title="remove from queue"
+                      aria-label={`Remove ${s.title} from the queue`}
                       onClick={() => remove(s.id)}
                     >
-                      ✕
+                      <span aria-hidden>✕</span>
                     </button>
                   </div>
                 ))}

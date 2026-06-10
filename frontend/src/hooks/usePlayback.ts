@@ -5,6 +5,7 @@
 // follows the room's global paused flag and resumes on tab return.
 // ============================================================
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { toast } from 'sonner';
 import type { CurrentDTO } from '../lib/types';
 
 const FADE_MS = 650; // crossfade length
@@ -57,6 +58,12 @@ export function usePlayback(current: CurrentDTO | null, nextUrl?: string | null,
         a.volume = 1;
         (a as HTMLAudioElement & { playsInline: boolean }).playsInline = true;
         a.id = id;
+        // a dead/expired stream would otherwise "play" silently with the clock
+        // still advancing; surface it (deduped so it shows once per failure).
+        a.addEventListener('error', () => {
+          if (a.src && !a.src.startsWith('blob:'))
+            toast.error("Couldn't play this track", { id: 'audio-error' });
+        });
         document.body.appendChild(a);
         return a;
       };
@@ -67,9 +74,13 @@ export function usePlayback(current: CurrentDTO | null, nextUrl?: string | null,
       p.muted = true;
       preloadRef.current = p;
     }
+    const a = audioRef.current;
+    const b = partnerRef.current;
     return () => {
-      audioRef.current?.pause();
-      partnerRef.current?.pause();
+      a?.pause();
+      a?.remove();
+      b?.pause();
+      b?.remove();
     };
   }, []);
 
@@ -279,11 +290,9 @@ export function usePlayback(current: CurrentDTO | null, nextUrl?: string | null,
       partner.volume = 0;
       partner
         .play()
-        .then(() => {
-          partner.pause();
-          URL.revokeObjectURL(s);
-        })
-        .catch(() => {});
+        .then(() => partner.pause())
+        .catch(() => {})
+        .finally(() => URL.revokeObjectURL(s));
     }
     const audio = audioRef.current;
     const c = currentRef.current;
@@ -298,10 +307,10 @@ export function usePlayback(current: CurrentDTO | null, nextUrl?: string | null,
         .play()
         .then(() => {
           audio.pause();
-          URL.revokeObjectURL(silent);
           if (currentRef.current && !paused) seekAndPlay(currentRef.current);
         })
-        .catch(() => {});
+        .catch(() => {})
+        .finally(() => URL.revokeObjectURL(silent));
     }
   }, [paused, seekAndPlay]);
 

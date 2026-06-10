@@ -14,10 +14,12 @@ export function VinylArt({
   hue,
   size = 64,
   spinning,
+  label,
 }: {
   hue: number;
   size?: number;
   spinning?: boolean;
+  label?: string;
 }) {
   const base = `oklch(0.32 0.06 ${hue})`;
   const mid = `oklch(0.55 0.12 ${hue})`;
@@ -25,6 +27,9 @@ export function VinylArt({
   return (
     <div
       className={'vinyl' + (spinning ? ' vinyl-spin' : '')}
+      role={label ? 'img' : undefined}
+      aria-label={label || undefined}
+      aria-hidden={label ? undefined : true}
       style={{
         width: size,
         height: size,
@@ -47,6 +52,7 @@ export function AlbumArt({
   spinning,
   radius,
   priority,
+  alt = '', // pass a real alt for content art; leave '' for decorative use
 }: {
   artworkUrl: string | null;
   hue: number;
@@ -54,17 +60,19 @@ export function AlbumArt({
   spinning?: boolean;
   radius?: number;
   priority?: boolean;
+  alt?: string;
 }) {
   const [failed, setFailed] = useState(false);
   // a new URL should retry (don't stay stuck on the vinyl fallback)
   useEffect(() => setFailed(false), [artworkUrl]);
-  if (!artworkUrl || failed) return <VinylArt hue={hue} size={size} spinning={spinning} />;
+  if (!artworkUrl || failed)
+    return <VinylArt hue={hue} size={size} spinning={spinning} label={alt} />;
   const r = radius ?? Math.round(size * 0.16);
   return (
     <div className="albumart" style={{ width: size, height: size, borderRadius: r }}>
       <img
         src={artworkUrl}
-        alt=""
+        alt={alt}
         loading={priority ? 'eager' : 'lazy'}
         decoding="async"
         onError={() => setFailed(true)}
@@ -210,6 +218,8 @@ export function StarField() {
     }));
   }, []);
   useEffect(() => {
+    // hold the stars still for anyone who prefers reduced motion
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     let mx = 0,
       my = 0,
       raf: number | null = null;

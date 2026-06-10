@@ -96,8 +96,9 @@ export function SongSearch({
                   className="search-row-btn mono"
                   onClick={() => onPreview(t)}
                   title="preview"
+                  aria-label={`Preview ${t.title}`}
                 >
-                  ▶
+                  <span aria-hidden>▶</span>
                 </button>
               )}
               <button

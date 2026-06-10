@@ -33,8 +33,13 @@ function ThemeToggle() {
     localStorage.setItem('nero-theme', dark ? 'dark' : 'light');
   }, [dark]);
   return (
-    <button className="theme-toggle" onClick={() => setDark((d) => !d)} title="toggle theme">
-      {dark ? '☀' : '☾'}
+    <button
+      className="theme-toggle"
+      onClick={() => setDark((d) => !d)}
+      title="toggle theme"
+      aria-label={dark ? 'Switch to light theme' : 'Switch to dark theme'}
+    >
+      <span aria-hidden>{dark ? '☀' : '☾'}</span>
     </button>
   );
 }
@@ -101,7 +106,7 @@ export default function App() {
       setCreating(true);
       const r = await room.actions.createParty(cfg);
       setCreating(false);
-      if (!r?.ok) alert(r?.reason ?? 'Could not create party');
+      if (!r?.ok) toast.error(r?.reason ?? 'Could not create party');
     },
     [room.actions],
   );
