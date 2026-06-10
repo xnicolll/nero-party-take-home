@@ -149,7 +149,13 @@ function reducer(state: RoomState, action: Action): RoomState {
         skipping: false,
       };
     case 'queueExhausted':
-      return { ...state, awaitingMore: true, skipping: false };
+      // the whole queue has played; mark them so the final ranking shows scores
+      return {
+        ...state,
+        awaitingMore: true,
+        skipping: false,
+        songs: state.songs.map((s) => ({ ...s, played: true })),
+      };
     case 'playback':
       return {
         ...state,
@@ -159,9 +165,13 @@ function reducer(state: RoomState, action: Action): RoomState {
           : state.current,
       };
     case 'songChanged': {
-      // replace the current song entry with its fresh (reset) version
+      // replace the current song with its fresh version; everything before the
+      // new index has now played, so mark it (keeps the live ranking populated)
+      const newIdx = action.current.idx;
       const songs = state.songs.map((s) =>
-        s.id === action.current.song.id ? action.current.song : { ...s },
+        s.id === action.current.song.id
+          ? action.current.song
+          : { ...s, played: s.position < newIdx ? true : s.played },
       );
       return {
         ...state,
@@ -216,9 +226,12 @@ function reducer(state: RoomState, action: Action): RoomState {
       return { ...state, songs, bursts };
     }
     case 'leaderboard': {
-      // reconcile authoritative scores
-      const byId = new Map(action.order.map((r) => [r.songId, r.score]));
-      const songs = state.songs.map((s) => (byId.has(s.id) ? { ...s, score: byId.get(s.id)! } : s));
+      // reconcile authoritative score + played flag (so finished songs stay ranked)
+      const byId = new Map(action.order.map((r) => [r.songId, r]));
+      const songs = state.songs.map((s) => {
+        const row = byId.get(s.id);
+        return row ? { ...s, score: row.score, played: row.played } : s;
+      });
       return { ...state, songs, leaderboard: action.order };
     }
     case 'finale':

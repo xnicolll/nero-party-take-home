@@ -82,23 +82,28 @@ export function computeResults(room: Room): RawResults {
   const played = room.songs.filter((s) => s.played);
   const ranked = [...played].sort((a, b) => b.score - a.score);
 
-  // The finale compares the top songs (by total reactions), each shown at its
-  // hottest second. So the songs the room actually liked are the ones that get
-  // compared and can be crowned - not just whichever had one spiky moment.
-  const moments: MomentRuntime[] = ranked
-    .slice(0, 4)
-    .map((s) => {
-      let bi = 0;
-      let bv = -1;
-      s.buckets.forEach((v, i) => {
-        if (v > bv) {
-          bv = v;
-          bi = i;
-        }
+  // Moment of the Night candidates: the hottest single seconds across ALL songs
+  // (best 2 buckets per song, top 4 overall). This is independent of total heat,
+  // so the best MOMENT can crown a different song than Song of the Night.
+  const cand: MomentRuntime[] = [];
+  played.forEach((s) => {
+    s.buckets
+      .map((v, i) => ({ v, i }))
+      .sort((a, b) => b.v - a.v)
+      .slice(0, 2)
+      .forEach(({ v, i }) => {
+        if (v > 0) cand.push({ song: s, bucket: i, heat: v, frac: (i + 0.5) / BUCKETS });
       });
-      return { song: s, bucket: bi, heat: Math.max(bv, 0), frac: (bi + 0.5) / BUCKETS };
-    })
-    .filter((m) => m.song.heat > 0);
+  });
+  cand.sort((a, b) => b.heat - a.heat);
+  const moments: MomentRuntime[] = [];
+  const perSong: Record<string, number> = {};
+  for (const c of cand) {
+    if ((perSong[c.song.id] || 0) >= 2) continue;
+    perSong[c.song.id] = (perSong[c.song.id] || 0) + 1;
+    moments.push(c);
+    if (moments.length === 4) break;
+  }
 
   const by = (fn: (s: SongRuntime) => number): SongRuntime | undefined =>
     [...played].sort((a, b) => fn(b) - fn(a))[0];
