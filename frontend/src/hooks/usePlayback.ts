@@ -8,7 +8,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import type { CurrentDTO } from '../lib/types';
 
-const FADE_MS = 650; // crossfade length
+export const FADE_MS = 650; // crossfade length - visual choreography keys off this too
 
 function makeSilentUrl(): string {
   const sr = 8000;

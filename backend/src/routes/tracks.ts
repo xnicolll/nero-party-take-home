@@ -11,9 +11,10 @@ tracksRouter.get('/search', async (req, res) => {
   res.json({ tracks });
 });
 
-// GET /api/tracks/trending?lane=Electronic
+// GET /api/tracks/trending?lane=Electronic&limit=30
 tracksRouter.get('/trending', async (req, res) => {
   const lane = req.query.lane ? String(req.query.lane) : undefined;
-  const tracks = await trending(lane ? laneToGenre(lane) : undefined, 12);
+  const limit = Math.max(1, Math.min(50, Number(req.query.limit) || 12));
+  const tracks = await trending(lane ? laneToGenre(lane) : undefined, limit);
   res.json({ tracks });
 });

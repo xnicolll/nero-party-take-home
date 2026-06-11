@@ -38,7 +38,7 @@ We recognize that you may not have experience with some or all of these librarie
 
 However, you should know that this **is** our tech stack, so you'll be rewarded if you're able to use them properly.  
 
-Also, you'll need to integrate with a **music API** for song search and playback. Which API you choose is up to you — do some research and pick one that fits well. We intentionally did not implement this for you - we're just making sure you know how to figure stuff out on your own.
+Also, you'll need to integrate with a **music API** for song search and playback. Which API you choose is up to you - do some research and pick one that fits well. We intentionally did not implement this for you - we're just making sure you know how to figure stuff out on your own.
 
 ## What We're Evaluating
 

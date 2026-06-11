@@ -51,6 +51,7 @@ export interface SongDTO {
   heat: number;
   score: number;
   buckets: number[];
+  bucketsByType: Record<ReactionType, number[]>;
   counts: Partial<Record<ReactionType, number>>;
   syncs: number;
   pins: PinDTO[];
@@ -95,6 +96,7 @@ export interface MomentDTO {
   ts: string;
   heat: number;
   buckets: number[];
+  bucketsByType: Record<ReactionType, number[]>;
   glyph: ReactionType;
 }
 

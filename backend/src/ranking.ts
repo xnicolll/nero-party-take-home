@@ -29,6 +29,7 @@ export function addReaction(
   song.heat += w;
   const b = Math.min(BUCKETS - 1, Math.floor(frac * BUCKETS));
   song.buckets[b] += w;
+  song.bucketsByType[type][b] += w;
 
   room.recent = room.recent.filter((r) => now - r.t < SYNC_WINDOW_MS);
   room.recent.push({ t: now, participantId, frac });
@@ -96,13 +97,18 @@ export function computeResults(room: Room): RawResults {
       });
   });
   cand.sort((a, b) => b.heat - a.heat);
+  // diversity first: the best moment of each song, then second-bests fill
+  // the gaps, so the playoff never has to pit a song against itself
   const moments: MomentRuntime[] = [];
   const perSong: Record<string, number> = {};
-  for (const c of cand) {
-    if ((perSong[c.song.id] || 0) >= 2) continue;
-    perSong[c.song.id] = (perSong[c.song.id] || 0) + 1;
-    moments.push(c);
-    if (moments.length === 4) break;
+  for (const pass of [1, 2]) {
+    for (const c of cand) {
+      if (moments.length === 4) break;
+      if (moments.includes(c)) continue;
+      if ((perSong[c.song.id] || 0) >= pass) continue;
+      perSong[c.song.id] = (perSong[c.song.id] || 0) + 1;
+      moments.push(c);
+    }
   }
 
   const by = (fn: (s: SongRuntime) => number): SongRuntime | undefined =>

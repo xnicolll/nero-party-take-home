@@ -45,6 +45,7 @@ export function toSongDTO(room: Room, s: SongRuntime): SongDTO {
     heat: s.heat,
     score: s.score,
     buckets: s.buckets,
+    bucketsByType: s.bucketsByType,
     counts: s.counts,
     syncs: s.syncs,
     pins: s.pins.map((p) => ({ frac: p.frac, type: p.type, participantId: p.participantId })),
@@ -118,6 +119,7 @@ export function toMomentDTO(m: MomentRuntime): MomentDTO {
     ts: fmtTime(m.frac * m.song.durationSec),
     heat: m.heat,
     buckets: m.song.buckets,
+    bucketsByType: m.song.bucketsByType,
     glyph: topGlyph(m),
   };
 }

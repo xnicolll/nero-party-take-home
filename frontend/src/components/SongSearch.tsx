@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 import { fmtTime } from '../lib/nero';
 import type { Track } from '../lib/types';
 import { AlbumArt } from './atoms';
+import { Mark } from './marks';
 
 export function SongSearch({
   search,
@@ -63,9 +64,9 @@ export function SongSearch({
   };
 
   return (
-    <div className="search-wrap">
+    <div className="sp-search">
       <input
-        className="search-input"
+        className="sp-input sp-search-input"
         placeholder="search a song to add…"
         value={q}
         onChange={(e) => setQ(e.target.value)}
@@ -75,17 +76,17 @@ export function SongSearch({
         spellCheck={false}
         autoFocus
       />
-      <div className="search-results">
-        {loading && <div className="strip-demo mono">searching…</div>}
+      <div className="sp-search-results">
+        {loading && <div className="sp-hint">searching…</div>}
         {!loading && q.trim() && results.length === 0 && (
-          <div className="strip-demo mono">no tracks found</div>
+          <div className="sp-hint">no tracks found</div>
         )}
         {results.map((t) => {
           const isQueued = queuedIds.has(t.id) || added.has(t.id);
           return (
-            <div key={t.id} className="search-row">
+            <div key={t.id} className="sp-search-row">
               <AlbumArt artworkUrl={t.artworkUrl} hue={t.hue} size={34} radius={6} />
-              <div className="search-row-meta">
+              <div className="sp-search-meta">
                 <b>{t.title}</b>
                 <span>
                   {t.artist} · {fmtTime(t.durationSec)}
@@ -93,21 +94,21 @@ export function SongSearch({
               </div>
               {onPreview && (
                 <button
-                  className="search-row-btn mono"
+                  className="sp-iconbtn"
                   onClick={() => onPreview(t)}
                   title="preview"
                   aria-label={`Preview ${t.title}`}
                 >
-                  <span aria-hidden>▶</span>
+                  <Mark name="play" size={11} />
                 </button>
               )}
               <button
-                className={'search-row-btn add mono' + (isQueued ? ' queued' : '')}
+                className={'sp-chip' + (isQueued ? ' on' : '')}
                 disabled={(!isQueued && !!full) || adding === t.id}
                 onClick={() => (isQueued ? onUnadd(t) : onAdd(t))}
                 title={isQueued ? 'remove from queue' : 'add to queue'}
               >
-                {adding === t.id ? 'ADDING…' : isQueued ? 'QUEUED ✕' : full ? 'FULL' : '+ ADD'}
+                {adding === t.id ? 'adding…' : isQueued ? 'queued' : full ? 'full' : 'add'}
               </button>
             </div>
           );

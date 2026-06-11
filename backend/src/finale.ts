@@ -7,11 +7,33 @@
 import type { FinaleRuntime, MomentRuntime, Room } from './room/state.js';
 
 // [[m0,m3],[m1,m2]] semis then a final; or a single match; or none.
+// A match must never pit a song against itself, so try the three possible
+// pairings and take the first where both matches cross songs.
 export function buildBracket(moments: MomentRuntime[]): [MomentRuntime, MomentRuntime][] {
   if (moments.length >= 4) {
+    const m = moments;
+    const options: [number, number][][] = [
+      [
+        [0, 3],
+        [1, 2],
+      ],
+      [
+        [0, 2],
+        [1, 3],
+      ],
+      [
+        [0, 1],
+        [2, 3],
+      ],
+    ];
+    for (const opt of options) {
+      if (opt.every(([a, b]) => m[a].song.id !== m[b].song.id)) {
+        return opt.map(([a, b]) => [m[a], m[b]] as [MomentRuntime, MomentRuntime]);
+      }
+    }
     return [
-      [moments[0], moments[3]],
-      [moments[1], moments[2]],
+      [m[0], m[3]],
+      [m[1], m[2]],
     ];
   }
   if (moments.length >= 2) return [[moments[0], moments[1]]];
@@ -65,6 +87,16 @@ export function advance(finale: FinaleRuntime): { crowned: MomentRuntime | null 
     if (finale.round + 1 < finale.bracket.length) {
       finale.round += 1;
     } else if (finale.finalists.length >= 2) {
+      // a song never faces itself: if both finalists are moments of the same
+      // song, skip the pointless final and crown the hotter moment
+      if (finale.finalists[0].song.id === finale.finalists[1].song.id) {
+        finale.stage = 'done';
+        const hotter =
+          finale.finalists[0].heat >= finale.finalists[1].heat
+            ? finale.finalists[0]
+            : finale.finalists[1];
+        return { crowned: hotter };
+      }
       finale.stage = 'final';
     } else {
       finale.stage = 'done';
