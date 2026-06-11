@@ -91,9 +91,76 @@ export async function searchTracks(query: string, limit = 12): Promise<Track[]> 
   }
 }
 
-// No charts endpoint, so "trending" is a search for the lane's term.
+// --- diversity: keep walls + recs from repeating a cover, a song, or one
+// artist. iTunes search is deterministic, so without this the same faces
+// surface every time and one album's tracks crowd the page. ---
+
+// collapse the size segment so every size of one cover maps to a single key
+function artKey(url: string | null | undefined): string {
+  return url ? url.replace(/\/\d+x\d+bb?\.(jpg|png)/, '/x') : '';
+}
+
+// normalize a title so "Song", "Song (Remastered)", "Song - Live", and
+// "Song feat. X" all collapse to the same song
+function songKey(t: Track): string {
+  const title = t.title
+    .toLowerCase()
+    .replace(/\(.*?\)|\[.*?\]/g, '')
+    .replace(/\s-\s.*$/, '')
+    .replace(/feat\.?.*$/, '')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+  return `${t.artist.toLowerCase().trim()}::${title}`;
+}
+
+export interface DiversifyOpts {
+  maxPerArtist?: number;
+  limit?: number;
+}
+
+// one cover per album, one entry per song, optional per-artist cap; input
+// order is preserved (so the most relevant survives a clash). Generic so the
+// caller's richer type (e.g. Rec) is preserved.
+export function diversify<T extends Track>(tracks: T[], opts: DiversifyOpts = {}): T[] {
+  const maxPerArtist = opts.maxPerArtist ?? Infinity;
+  const seenArt = new Set<string>();
+  const seenSong = new Set<string>();
+  const perArtist = new Map<string, number>();
+  const out: T[] = [];
+  for (const t of tracks) {
+    const ak = artKey(t.artworkUrl);
+    const sk = songKey(t);
+    const artist = t.artist.toLowerCase().trim();
+    if (ak && seenArt.has(ak)) continue;
+    if (seenSong.has(sk)) continue;
+    const used = perArtist.get(artist) ?? 0;
+    if (used >= maxPerArtist) continue;
+    if (ak) seenArt.add(ak);
+    seenSong.add(sk);
+    perArtist.set(artist, used + 1);
+    out.push(t);
+    if (opts.limit && out.length >= opts.limit) break;
+  }
+  return out;
+}
+
+// shuffle a copy and take n, so a fresh mix surfaces on each visit
+function sample<T>(arr: T[], n: number): T[] {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a.slice(0, n);
+}
+
+// No charts endpoint, so "trending" searches the lane term over a large pool,
+// strips repeats (same cover/song, at most two per artist), then samples a
+// fresh mix each call so the wall + recs never look the same twice.
+const TREND_POOL = 120;
 export async function trending(term: string | undefined, limit = 12): Promise<Track[]> {
-  return searchTracks(term || 'top hits', limit);
+  const pool = await searchTracks(term || 'top hits', TREND_POOL);
+  return sample(diversify(pool, { maxPerArtist: 2 }), limit);
 }
 
 export async function getTrack(id: string): Promise<Track | null> {

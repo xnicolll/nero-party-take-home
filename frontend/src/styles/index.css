@@ -1,0 +1,7 @@
+/* SPECTRUM - imported after the legacy index.css so the new system
+   wins ties while screens migrate; the legacy file is deleted at the
+   final purge step. */
+@import './tokens.css';
+@import './base.css';
+@import './components.css';
+@import './screens.css';

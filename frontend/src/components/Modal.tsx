@@ -42,9 +42,9 @@ export function Modal({
 
   if (!render) return null;
   return (
-    <div className={'modal-scrim' + (closing ? ' closing' : '')} onClick={onClose}>
+    <div className={'sp-scrim' + (closing ? ' closing' : '')} onClick={onClose}>
       <div
-        className={'modal-body' + (closing ? ' closing' : '')}
+        className={'sp-modal' + (closing ? ' closing' : '')}
         onClick={(e) => e.stopPropagation()}
       >
         {last.current}

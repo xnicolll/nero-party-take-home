@@ -15,14 +15,27 @@ process.on('uncaughtException', (err) => console.error('uncaughtException', err)
 const app = express();
 const server = createServer(app);
 
+// allow the configured origin plus any localhost port - vite hops to 5174+
+// when 5173 is busy, and a CORS-blocked client just looks like a blank wall
+const corsOrigin = (
+  origin: string | undefined,
+  cb: (err: Error | null, allow?: boolean) => void,
+) => {
+  const ok =
+    !origin ||
+    origin === env.CLIENT_ORIGIN ||
+    /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
+  cb(null, ok);
+};
+
 const io = new Server(server, {
   cors: {
-    origin: env.CLIENT_ORIGIN,
+    origin: corsOrigin,
     methods: ['GET', 'POST'],
   },
 });
 
-app.use(cors({ origin: env.CLIENT_ORIGIN }));
+app.use(cors({ origin: corsOrigin }));
 app.use(express.json());
 
 // Health check
