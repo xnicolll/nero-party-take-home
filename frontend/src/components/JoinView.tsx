@@ -1,9 +1,12 @@
 // ============================================================
 // NERO PARTY - join via share link (/j/:code)
+// Same paper language as the picker: wordmark, the orange rule,
+// the party name big, one input, one button. One screen.
 // ============================================================
 import { useEffect, useState } from 'react';
 import { API_BASE } from '../lib/nero';
-import { Btn, Eyebrow, StarField } from './atoms';
+import { InkRule } from './ink';
+import { Wordmark } from './Wordmark';
 
 export function JoinView({
   code,
@@ -46,34 +49,48 @@ export function JoinView({
   };
 
   return (
-    <div className="create-wrap">
-      <StarField />
-      <div className="create-card" style={{ maxWidth: 460, alignItems: 'stretch' }}>
-        <Eyebrow>join · {code}</Eyebrow>
-        {status === 'loading' && <h2 className="create-title">Finding the party…</h2>}
+    <div className="sp-join">
+      <header className="sp-pick-top">
+        <div className="sp-pick-head">
+          <Wordmark owner="nero" />
+        </div>
+      </header>
+      <div className="sp-pick-horizon">
+        <InkRule color="var(--sp-neon)" height={18} stroke={2.5} delay={300} />
+      </div>
+
+      <main className="sp-join-core">
+        {status === 'loading' && <h1 className="sp-join-title sp-dim sp-in">finding the party…</h1>}
         {status === 'missing' && (
           <>
-            <h2 className="create-title">No party here</h2>
-            <p className="hero-sub">That link looks expired or wrong.</p>
-            <Btn onClick={onBail}>Go home</Btn>
+            <h1 className="sp-join-title sp-in">No party here</h1>
+            <p className="sp-sub sp-in" style={{ animationDelay: '0.08s' }}>
+              that link looks expired or wrong.
+            </p>
+            <div className="sp-actions sp-in" style={{ animationDelay: '0.16s' }}>
+              <button className="sp-btn" onClick={onBail}>
+                go home
+              </button>
+            </div>
           </>
         )}
         {status === 'ok' && party && (
           <>
-            <h2 className="create-title">{party.name}</h2>
-            <p className="hero-sub">
-              {party.phase === 'lobby'
-                ? 'The lobby is open. Add your name and step in.'
-                : party.phase === 'coronation'
-                  ? 'This party has already crowned its winner.'
-                  : 'The party is live. Jump in.'}
+            <p className="sp-label sp-in">you're invited to</p>
+            <h1 className="sp-join-title sp-in" style={{ animationDelay: '0.08s' }}>
+              {party.name}
+            </h1>
+            <p className="sp-sub sp-in" style={{ animationDelay: '0.16s' }}>
+              {party.phase === 'coronation'
+                ? 'this party has already crowned its winner.'
+                : 'the party is live right now. add your name and jump in.'}
             </p>
             {party.phase !== 'coronation' && (
               <>
-                <label className="fld">
-                  <span className="fld-label">your name</span>
+                <label className="sp-fld sp-join-fld sp-in" style={{ animationDelay: '0.24s' }}>
+                  <span className="sp-label">your name</span>
                   <input
-                    className="fld-input"
+                    className="sp-input"
                     value={name}
                     placeholder="who's joining?"
                     maxLength={24}
@@ -82,20 +99,20 @@ export function JoinView({
                     autoFocus
                   />
                 </label>
-                {err && <span className="lobby-wait mono">{err}</span>}
-                <div className="create-actions">
-                  <Btn ghost onClick={onBail}>
-                    Back
-                  </Btn>
-                  <Btn big disabled={busy} onClick={join}>
-                    {busy ? 'Joining…' : 'Join the party'}
-                  </Btn>
+                {err && <span className="sp-fld-err">{err}</span>}
+                <div className="sp-actions sp-in" style={{ animationDelay: '0.32s' }}>
+                  <button className="sp-btn sp-btn-quiet" onClick={onBail}>
+                    back
+                  </button>
+                  <button className="sp-btn sp-btn-solid" disabled={busy} onClick={join}>
+                    {busy ? 'joining…' : 'join the party'}
+                  </button>
                 </div>
               </>
             )}
           </>
         )}
-      </div>
+      </main>
     </div>
   );
 }

@@ -1,47 +1,27 @@
 // ============================================================
 // NERO PARTY - app shell + phase machine
-// landing -> create -> lobby -> party -> finale -> coronation
-// Phases after joining follow the server (room.phase); the share link
-// (/j/:code) opens the join view.
+// The landing IS the start: pick an album art, the paint floods,
+// and you're in the party. No lobby. Phases after joining follow
+// the server (room.phase); the share link (/j/:code) joins in.
 // ============================================================
 import { useCallback, useEffect, useState } from 'react';
 import { Toaster, toast } from 'sonner';
 import { loadCreds, useRoom } from './hooks/useRoom';
 import { usePlayback } from './hooks/usePlayback';
-import { Btn, Grain } from './components/atoms';
+import type { Track } from './lib/types';
+import { Mark } from './components/marks';
 import { Modal } from './components/Modal';
 import { Landing } from './components/Landing';
-import { CreateParty, type CreateConfig } from './components/CreateParty';
-import { Lobby } from './components/Lobby';
+import { Flood, type FloodOrigin } from './components/Flood';
 import { PartyRoom } from './components/PartyRoom';
 import { Playoff } from './components/Playoff';
 import { Coronation } from './components/Coronation';
-import { Tutorial } from './components/Tutorial';
+import { GhostTour } from './components/GhostTour';
 import { JoinView } from './components/JoinView';
 
 function parseJoinCode(): string | null {
   const m = window.location.pathname.match(/^\/j\/([^/]+)/);
   return m ? decodeURIComponent(m[1]).toUpperCase() : null;
-}
-
-function ThemeToggle() {
-  const [dark, setDark] = useState(
-    () => (localStorage.getItem('nero-theme') ?? 'light') === 'dark',
-  );
-  useEffect(() => {
-    document.documentElement.dataset.theme = dark ? 'dark' : 'light';
-    localStorage.setItem('nero-theme', dark ? 'dark' : 'light');
-  }, [dark]);
-  return (
-    <button
-      className="theme-toggle"
-      onClick={() => setDark((d) => !d)}
-      title="toggle theme"
-      aria-label={dark ? 'Switch to light theme' : 'Switch to dark theme'}
-    >
-      <span aria-hidden>{dark ? '☀' : '☾'}</span>
-    </button>
-  );
 }
 
 export default function App() {
@@ -51,10 +31,25 @@ export default function App() {
     room.phase === 'party' && !room.awaitingMore && !room.skipping ? room.current : null;
   const nextUrl = activeCurrent ? (room.songs[activeCurrent.idx + 1]?.streamUrl ?? null) : null;
   const { needsGesture, prime } = usePlayback(activeCurrent, nextUrl, room.paused);
-  const [uiPhase, setUiPhase] = useState<'landing' | 'create'>('landing');
   const [joinCode, setJoinCode] = useState<string | null>(parseJoinCode());
   const [creating, setCreating] = useState(false);
-  const [showTut, setShowTut] = useState(false);
+  const [showTour, setShowTour] = useState(false);
+  // the paint transition between picking an art and landing in the party
+  const [flood, setFlood] = useState<{ origin: FloodOrigin; art: string | null } | null>(null);
+
+  // first party ever: the ghost-ink tour draws itself over the real UI
+  useEffect(() => {
+    if (room.phase !== 'party') return;
+    if (localStorage.getItem('nero-tour-done')) return;
+    const t = setTimeout(() => setShowTour(true), 2200);
+    return () => clearTimeout(t);
+  }, [room.phase]);
+  const closeTour = useCallback(() => {
+    try {
+      localStorage.setItem('nero-tour-done', '1');
+    } catch {}
+    setShowTour(false);
+  }, []);
 
   // resume an existing party on refresh (rejoin) unless we're on a join link
   useEffect(() => {
@@ -62,15 +57,17 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // a song was skipped -> top-center toast explaining why, for 10s
+  // a song was skipped -> top-center toast explaining why
   useEffect(() => {
     if (!room.skipEvent) return;
     const { title, reason } = room.skipEvent;
     toast.custom(
       () => (
-        <div className="nero-toast">
-          <span className="nero-toast-icon">⏭</span>
-          <div className="nero-toast-text">
+        <div className="sp-toast">
+          <span className="sp-toast-icon">
+            <Mark name="skip" size={13} />
+          </span>
+          <div className="sp-toast-text">
             <b>skipped “{title}”</b>
             <span>{reason}</span>
           </div>
@@ -81,14 +78,11 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [room.skipEvent]);
 
-  // The tutorial is taught by scrolling the landing; it's only ever opened
-  // on demand via the `?` button, never auto-popped.
-
   const goHome = useCallback(() => {
     room.actions.reset();
     window.history.replaceState(null, '', '/');
     setJoinCode(null);
-    setUiPhase('landing');
+    setFlood(null);
     window.scrollTo(0, 0);
   }, [room.actions]);
 
@@ -101,20 +95,43 @@ export default function App() {
     goHome();
   }, [room.actions, goHome]);
 
-  const onCreate = useCallback(
-    async (cfg: CreateConfig) => {
+  // picking an album art IS creating the party - the click unlocks audio,
+  // the paint floods from the art, and the room is live underneath it
+  const onPick = useCallback(
+    async (track: Track, lane: string, rect: DOMRect) => {
+      if (creating) return;
       setCreating(true);
-      const r = await room.actions.createParty(cfg);
+      prime();
+      setFlood({
+        origin: { x: rect.left, y: rect.top, w: rect.width, h: rect.height },
+        art: track.artworkUrl,
+      });
+      const r = await room.actions.createParty({
+        name: `${track.artist} & friends`.slice(0, 36),
+        hostName: 'you',
+        lane,
+        maxSongs: 12,
+        chillsBudget: 3,
+        track,
+      });
       setCreating(false);
-      if (!r?.ok) toast.error(r?.reason ?? 'Could not create party');
+      if (!r?.ok) {
+        setFlood(null);
+        toast.custom(() => (
+          <div className="sp-toast sp-toast-warn">
+            <span className="sp-toast-icon">
+              <Mark name="close" size={13} />
+            </span>
+            <div className="sp-toast-text">
+              <b>couldn't start the party</b>
+              <span>{r?.reason ?? 'please try again'}</span>
+            </div>
+          </div>
+        ));
+      }
     },
-    [room.actions],
+    [creating, prime, room.actions],
   );
-
-  const onStart = useCallback(() => {
-    prime(); // unlock audio inside the gesture
-    room.actions.start();
-  }, [prime, room.actions]);
 
   const onJoin = useCallback(
     async (name: string) => {
@@ -130,27 +147,7 @@ export default function App() {
   if (joinCode && !room.joined) {
     screen = <JoinView code={joinCode} onJoin={onJoin} onBail={goHome} />;
   } else if (!room.joined) {
-    screen =
-      uiPhase === 'landing' ? (
-        <Landing onBegin={() => setUiPhase('create')} />
-      ) : (
-        <CreateParty onOpen={onCreate} onBack={() => setUiPhase('landing')} busy={creating} />
-      );
-  } else if (room.phase === 'lobby' && room.party) {
-    screen = (
-      <Lobby
-        party={room.party}
-        participants={room.participants}
-        songs={room.songs}
-        youId={room.you?.participantId ?? ''}
-        isHost={room.isHost}
-        onStart={onStart}
-        onLeave={requestLeave}
-        search={room.actions.searchTracks}
-        add={room.actions.addSong}
-        remove={room.actions.removeSong}
-      />
-    );
+    screen = <Landing onPick={onPick} busy={creating} />;
   } else if (room.phase === 'party' && room.party && room.current) {
     screen = (
       <PartyRoom
@@ -171,10 +168,11 @@ export default function App() {
         }
         onReact={room.actions.react}
         onSkip={room.actions.skip}
+        onPlayNow={room.actions.playNow}
         onEnd={room.actions.end}
         onFinish={room.actions.finish}
         onLeave={requestLeave}
-        onHelp={() => setShowTut(true)}
+        onHelp={() => setShowTour(true)}
         search={room.actions.searchTracks}
         add={room.actions.addSong}
         onRemove={room.actions.removeSong}
@@ -193,46 +191,69 @@ export default function App() {
     );
   } else {
     // transitional (waiting for the next bit of state)
-    screen = (
-      <div className="create-wrap">
-        <div className="orb orb-md" />
-      </div>
-    );
+    screen = <div className="sp-page" />;
   }
 
-  const inParty = room.joined && room.phase !== 'lobby';
   // changes only when the actual screen changes, so the fade plays on navigation
   const screenKey =
-    joinCode && !room.joined ? 'join' : !room.joined ? uiPhase : (room.phase ?? 'loading');
+    joinCode && !room.joined ? 'join' : !room.joined ? 'landing' : (room.phase ?? 'loading');
 
   return (
     <>
+      {/* the wobble that gives every paper note its hand-drawn inked edge */}
+      <svg width="0" height="0" className="sp-filters" aria-hidden focusable="false">
+        <filter id="sp-sketch" x="-5%" y="-5%" width="110%" height="110%">
+          <feTurbulence type="fractalNoise" baseFrequency="0.011" numOctaves="1" seed="7" result="n" />
+          <feDisplacementMap
+            in="SourceGraphic"
+            in2="n"
+            scale="1.6"
+            xChannelSelector="R"
+            yChannelSelector="G"
+          />
+        </filter>
+      </svg>
       <div className="screen" key={screenKey}>
         {screen}
       </div>
-      {showTut && <Tutorial onClose={() => setShowTut(false)} />}
+      {flood && (
+        <Flood
+          origin={flood.origin}
+          art={flood.art}
+          inviteUrl={room.party ? `${window.location.origin}/j/${room.party.joinCode}` : null}
+          onDone={() => setFlood(null)}
+        />
+      )}
+      {showTour && room.phase === 'party' && <GhostTour onClose={closeTour} />}
       <Modal open={confirmLeave} onClose={() => setConfirmLeave(false)}>
-        <div className="confirm-card glass">
-          <h3 className="confirm-title">Leave the party?</h3>
-          <p className="confirm-sub">You'll head back home. The party keeps going without you.</p>
-          <div className="confirm-actions">
-            <Btn ghost onClick={() => setConfirmLeave(false)}>
-              Stay
-            </Btn>
-            <Btn onClick={doLeave}>Leave party</Btn>
+        <div className="sp-card">
+          <h3 className="sp-card-title">Leave the party?</h3>
+          <p className="sp-sub">You'll head back home. The party keeps going without you.</p>
+          <div className="sp-actions">
+            <button className="sp-btn" onClick={() => setConfirmLeave(false)}>
+              stay
+            </button>
+            <button className="sp-btn sp-btn-solid" onClick={doLeave}>
+              leave party
+            </button>
           </div>
         </div>
       </Modal>
       {needsGesture && room.phase === 'party' && (
-        <div className="audio-gate" onClick={prime}>
-          <button className="audio-gate-btn" onClick={prime}>
-            ▶ tap to listen together
+        <div className="sp-veil" onClick={prime}>
+          <button className="sp-btn sp-btn-solid" onClick={prime}>
+            <Mark name="play" size={12} /> tap to listen together
           </button>
         </div>
       )}
-      {!inParty && <ThemeToggle />}
-      <Toaster position="top-center" offset={18} />
-      <Grain amount={4} />
+      <Toaster
+        position="top-center"
+        offset={18}
+        toastOptions={{
+          unstyled: true,
+          style: { background: 'transparent', border: 'none', boxShadow: 'none', padding: 0 },
+        }}
+      />
     </>
   );
 }

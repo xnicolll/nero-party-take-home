@@ -19,6 +19,7 @@ import {
   hostResume,
   hostSkip,
   humanReact,
+  playNow,
   removeSong,
   setDislike,
   startParty,
@@ -115,6 +116,13 @@ export function registerSocketHandlers(io: Server): void {
           isHost: true,
         } satisfies SocketData;
         armBotTimers(room);
+        // instant party: picking an album art IS the start - queue it and go,
+        // no lobby; bots (and friends via the link) trickle in mid-song
+        const instantTrack = payload?.track ? sanitizeTrack(payload.track) : null;
+        if (instantTrack) {
+          await addSongToRoom(room, instantTrack, host.id);
+          await startParty(room, { allowSolo: true });
+        }
         ack?.({
           ok: true,
           joinCode: party.joinCode,
@@ -269,6 +277,12 @@ export function registerSocketHandlers(io: Server): void {
       if (!room || payload?.hostToken !== room.hostToken) return;
       hostSkip(room);
     });
+    // host taps a queued song: play it right now
+    socket.on('hostPlayNow', (payload: any) => {
+      const room = roomFromSocket(socket);
+      if (!room || payload?.hostToken !== room.hostToken) return;
+      playNow(room, String(payload?.songId ?? ''));
+    });
     socket.on('hostEnd', (payload: any) => {
       const room = roomFromSocket(socket);
       if (!room || payload?.hostToken !== room.hostToken) return;
@@ -297,7 +311,7 @@ export function registerSocketHandlers(io: Server): void {
       const room = roomFromSocket(socket);
       if (!room) return ack?.({ recs: [] });
       try {
-        const recs = await buildRecs(room, 5);
+        const recs = await buildRecs(room, 12);
         ack?.({ recs });
       } catch {
         ack?.({ recs: [] });
