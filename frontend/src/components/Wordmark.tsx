@@ -67,7 +67,8 @@ export function Wordmark({ owner }: { owner: 'nero' | 'your' }) {
         ))}
       </span>
       <span className="sp-wordmark-dot">.</span>
-      {owner === 'nero' ? <CycleWord /> : <span className="sp-wordmark-cycle">party</span>}
+      {/* both nero. and your. cycle the same word list now */}
+      <CycleWord />
     </h1>
   );
 }

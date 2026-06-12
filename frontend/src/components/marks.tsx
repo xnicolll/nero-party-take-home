@@ -16,19 +16,21 @@ export type MarkName =
   | 'host'
   | 'down'
   | 'add'
-  | 'check';
+  | 'check'
+  | 'note'
+  | 'search'
+  | 'pen'
+  | 'thumbsdown';
 
 const PATHS: Record<MarkName, string> = {
-  // needle drop: a stem falling into the floor
-  drop: 'M12 3v9M7 14l5 5 5-5',
-  // one period of groove
-  groove: 'M2.5 12C5.7 4.5 8.5 4.5 11.75 12S18 19.5 21.5 12',
-  // a swell, rising
-  feels: 'M4 16a8 8 0 0 1 16 0M8.5 16a3.5 3.5 0 0 1 7 0',
-  // an uneven splat of a bang (deliberately NOT a symmetric spinner)
-  wtf: 'M12 12 11 3.5M12 12 17 8.5M12 12 21 13M12 12 14.5 19M12 12 6 19M12 12 3.5 11',
-  // a shiver, cascading down the spine
-  chills: 'M6.5 4.5v8M12 7.5v8M17.5 10.5v8',
+  // a like is a heart; hype reuses it, drawn bigger + filled as the scarce one
+  like: 'M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z',
+  hype: 'M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z',
+  // a thumbs-down: the dislike / skip vote
+  thumbsdown:
+    'M17 14V2M9 18.12 10 14H4.17a2 2 0 0 1-1.92-2.56l2.33-8A2 2 0 0 1 6.5 2H20a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-2.76a2 2 0 0 0-1.79 1.11L12 22a3.13 3.13 0 0 1-3-3.88Z',
+  // a music note: fallback for missing album art
+  note: 'M9 18V5l12-2v13M9 18a3 3 0 1 0-6 0 3 3 0 0 0 6 0M21 16a3 3 0 1 0-6 0 3 3 0 0 0 6 0',
   play: 'M8.5 5.5 18.5 12 8.5 18.5Z',
   pause: 'M9 5.5v13M15 5.5v13',
   skip: 'M5.5 5.5 12 12l-6.5 6.5M13 5.5 19.5 12 13 18.5',
@@ -37,6 +39,10 @@ const PATHS: Record<MarkName, string> = {
   down: 'M6.5 9.5 12 15l5.5-5.5',
   add: 'M12 5.5v13M5.5 12h13',
   check: 'M5.5 12.5 10 17l8.5-9.5',
+  // a magnifier: the search control
+  search: 'M10.5 18a7.5 7.5 0 1 0 0-15 7.5 7.5 0 0 0 0 15ZM21 21l-4.7-4.7',
+  // a pencil: the tap-to-edit hint on the host name
+  pen: 'M16.5 4.5l3 3M4 20l1-4L17 4l3 3L8 19Z',
 };
 
 export function Mark({

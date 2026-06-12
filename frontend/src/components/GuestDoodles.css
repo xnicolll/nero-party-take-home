@@ -1,0 +1,102 @@
+/* ============================================================
+   NERO PARTY - guest faces
+   A vertical column of wobbly ink faces pinned to the right margin.
+   Names sit to the left, always on. Faces breathe while idle; WAAPI
+   handles the per-reaction bounce/spin (see GuestDoodles.tsx).
+   ============================================================ */
+.sp-faces {
+  position: fixed;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--sp-s3);
+}
+
+.sp-face {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 11px;
+  outline: none;
+}
+
+/* name always visible, to the LEFT of the face */
+.sp-face-name {
+  font-style: normal;
+  font-size: var(--sp-text-sm);
+  font-weight: 600;
+  color: var(--sp-ink);
+  background: var(--sp-card);
+  border: 1px solid var(--sp-line);
+  border-radius: 9px;
+  padding: 4px 11px;
+  white-space: nowrap;
+  max-width: 9.5rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition:
+    background var(--sp-dur-2) ease,
+    color var(--sp-dur-2) ease,
+    border-color var(--sp-dur-2) ease;
+}
+
+/* a fresh arrival lights their name up for a beat */
+.sp-face-name.flash {
+  background: var(--sp-neon);
+  color: var(--sp-on-neon);
+  border-color: var(--sp-neon);
+}
+
+.sp-face-body {
+  position: relative;
+  display: inline-flex;
+  transform-origin: center;
+  filter: drop-shadow(0 2px 2px rgba(28, 24, 19, 0.25));
+  /* gentle idle breathing; WAAPI reactions ride over this */
+  animation: spFaceBreathe 3.6s ease-in-out infinite;
+}
+
+/* deal each face in on first paint, staggered feel via the column */
+.sp-face {
+  animation: spFaceDeal 0.5s var(--sp-ease-spring) backwards;
+}
+
+.sp-face-crown {
+  position: absolute;
+  top: -11px;
+  right: 2px;
+  color: var(--sp-ink);
+  transform: rotate(12deg);
+}
+
+@keyframes spFaceBreathe {
+  0%,
+  100% {
+    transform: rotate(-2.5deg) scale(0.99);
+  }
+  50% {
+    transform: rotate(2.5deg) scale(1.02);
+  }
+}
+
+@keyframes spFaceDeal {
+  from {
+    opacity: 0;
+    transform: translateX(14px) scale(0.6);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sp-face-body,
+  .sp-face {
+    animation: none;
+  }
+}

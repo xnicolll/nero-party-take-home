@@ -14,22 +14,15 @@ export interface ReactionDef {
   scarce?: boolean;
 }
 
+// v3: a binary like + the scarce hype. Colours are the ink marks' fills on the
+// neon party (a warm heart, a gold hype); dislike is the cool teal, handled
+// separately as a skip vote. Tuned against the orange bg in the layout pass.
 export const REACTIONS: Record<ReactionType, ReactionDef> = {
-  drop: { id: 'drop', label: 'DROP', hue: 45, color: '#e2581c', weight: 1 },
-  groove: { id: 'groove', label: 'GROOVE', hue: 320, color: '#c03296', weight: 1 },
-  feels: { id: 'feels', label: 'FEELS', hue: 10, color: '#d62f3c', weight: 1 },
-  wtf: { id: 'wtf', label: 'BANG', hue: 95, color: '#dd9c08', weight: 1 },
-  chills: {
-    id: 'chills',
-    label: 'CHILLS',
-    hue: 230,
-    color: '#2b72c8',
-    weight: 3,
-    scarce: true,
-  },
+  like: { id: 'like', label: 'like', hue: 345, color: '#ff3d7f', weight: 1 },
+  hype: { id: 'hype', label: 'hype', hue: 45, color: '#ffd23f', weight: 5, scarce: true },
 };
 
-export const REACTION_ORDER: ReactionType[] = ['drop', 'groove', 'feels', 'wtf', 'chills'];
+export const REACTION_ORDER: ReactionType[] = ['like', 'hype'];
 
 export const LANES = ['Anything goes', 'Electronic', 'Indie / Alt', 'Hip-hop'];
 

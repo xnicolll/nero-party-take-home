@@ -9,6 +9,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { prefersReducedMotion } from '../lib/motion';
 import { Mark } from './marks';
+import './Flood.css';
 
 export interface FloodOrigin {
   x: number;
@@ -17,15 +18,72 @@ export interface FloodOrigin {
   h: number;
 }
 
+// The one editable thing on the pre-party screen: the host's display name.
+// An inline, content-sized field that reads as part of the "hosted by ___"
+// line, softly underlined, cream on the neon. Tap to edit, Enter/blur commits.
+function NameField({ value, onCommit }: { value: string; onCommit: (name: string) => void }) {
+  const ref = useRef<HTMLInputElement>(null);
+  const [draft, setDraft] = useState(value);
+  const [editing, setEditing] = useState(false);
+
+  // follow the authoritative name in unless we're mid-edit
+  useEffect(() => {
+    if (!editing) setDraft(value);
+  }, [value, editing]);
+
+  const commit = () => {
+    setEditing(false);
+    const next = draft.trim().slice(0, 24);
+    if (next && next !== value) onCommit(next);
+    else setDraft(value);
+  };
+
+  return (
+    <span className="sp-flood-name" data-editing={editing || undefined}>
+      <input
+        ref={ref}
+        className="sp-flood-name-input"
+        value={draft}
+        size={Math.max(2, Math.min(24, draft.length || value.length))}
+        maxLength={24}
+        spellCheck={false}
+        autoComplete="off"
+        aria-label="your name"
+        onFocus={(e) => {
+          setEditing(true);
+          e.currentTarget.select();
+        }}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={commit}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') e.currentTarget.blur();
+          if (e.key === 'Escape') {
+            setDraft(value);
+            setEditing(false);
+            e.currentTarget.blur();
+          }
+        }}
+      />
+      <Mark name="pen" size={13} strokeWidth={2.2} className="sp-flood-name-pen" />
+    </span>
+  );
+}
+
 export function Flood({
   origin,
   art,
   inviteUrl,
+  hostName,
+  onRename,
+  onReveal,
   onDone,
 }: {
   origin: FloodOrigin;
   art: string | null;
   inviteUrl: string | null;
+  hostName: string;
+  onRename: (name: string) => void;
+  onReveal: () => void;
   onDone: () => void;
 }) {
   const rootRef = useRef<HTMLDivElement>(null);
@@ -33,6 +91,8 @@ export function Flood({
   const capRef = useRef<HTMLDivElement>(null);
   const doneRef = useRef(onDone);
   doneRef.current = onDone;
+  const revealRef = useRef(onReveal);
+  revealRef.current = onReveal;
   const startedRef = useRef(false);
   const [copied, setCopied] = useState(false);
 
@@ -77,8 +137,11 @@ export function Flood({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // fade the whole paint layer out, then hand control back to the room
+  // fade the whole paint layer out, then hand control back to the room.
+  // onReveal fires immediately so the screen crossfades IN while the flood
+  // fades OUT - simultaneous, not sequential, so the album art never goes dark.
   const finish = () => {
+    revealRef.current();
     const root = rootRef.current;
     if (!root) return doneRef.current();
     root
@@ -153,6 +216,23 @@ export function Flood({
       )}
       <div ref={capRef} className="sp-flood-cap" style={{ top: capTop }}>
         <b>invite your friends + listen</b>
+        <p className="sp-flood-host">
+          hosted by <NameField value={hostName} onCommit={onRename} />
+        </p>
+        <div className="sp-flood-legend">
+          <span>
+            <Mark name="like" size={16} strokeWidth={2} style={{ color: 'var(--sp-on-neon)' }} />
+            <kbd>up</kbd> like the moment
+          </span>
+          <span>
+            <Mark name="hype" size={16} strokeWidth={2} style={{ color: 'var(--sp-on-neon)' }} />
+            <kbd>space</kbd> hype, your 3 biggest of the night
+          </span>
+          <span>
+            <Mark name="thumbsdown" size={16} strokeWidth={2} style={{ color: 'var(--sp-on-neon)' }} />
+            <kbd>down</kbd> not feeling it
+          </span>
+        </div>
         <button className="sp-flood-cta" onClick={onStart} disabled={copied}>
           {copied ? 'link copied, starting' : 'copy invite link + start'}
           <Mark name={copied ? 'check' : 'skip'} size={13} strokeWidth={2.6} />

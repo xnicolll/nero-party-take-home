@@ -80,6 +80,7 @@ type Action =
   | { type: 'snapshot'; snap: Snapshot }
   | { type: 'participantJoined'; p: ParticipantDTO }
   | { type: 'participantLeft'; id: string }
+  | { type: 'participantRenamed'; id: string; name: string }
   | { type: 'queueUpdated'; songs: SongDTO[] }
   | { type: 'phaseChanged'; phase: ServerPhase }
   | { type: 'songChanged'; current: CurrentDTO }
@@ -89,6 +90,7 @@ type Action =
   | { type: 'finale'; finale: FinaleState }
   | { type: 'results'; results: ResultsDTO }
   | { type: 'queueExhausted' }
+  | { type: 'queueCapUpdate'; maxSongs: number }
   | { type: 'playback'; paused: boolean; serverTime: number; positionMs: number }
   | { type: 'localChills' }
   | { type: 'dislikeUpdate'; count: number; total: number }
@@ -141,6 +143,17 @@ function reducer(state: RoomState, action: Action): RoomState {
           p.id === action.id ? { ...p, connected: false } : p,
         ),
       };
+    case 'participantRenamed':
+      return {
+        ...state,
+        participants: state.participants.map((p) =>
+          p.id === action.id ? { ...p, name: action.name } : p,
+        ),
+        you:
+          state.you && state.you.participantId === action.id
+            ? { ...state.you, name: action.name }
+            : state.you,
+      };
     case 'queueUpdated':
       return { ...state, songs: action.songs };
     case 'phaseChanged':
@@ -160,6 +173,11 @@ function reducer(state: RoomState, action: Action): RoomState {
         awaitingMore: true,
         skipping: false,
         songs: state.songs.map((s) => ({ ...s, played: true })),
+      };
+    case 'queueCapUpdate':
+      return {
+        ...state,
+        party: state.party ? { ...state.party, maxSongs: action.maxSongs } : state.party,
       };
     case 'playback':
       return {
@@ -326,6 +344,8 @@ export function useRoom() {
         dispatch({ type: 'participantJoined', p: d.participant }),
       participantLeft: (d: { participantId: string }) =>
         dispatch({ type: 'participantLeft', id: d.participantId }),
+      participantRenamed: (d: { participantId: string; name: string }) =>
+        dispatch({ type: 'participantRenamed', id: d.participantId, name: d.name }),
       queueUpdated: (d: { songs: SongDTO[] }) => dispatch({ type: 'queueUpdated', songs: d.songs }),
       phaseChanged: (d: { phase: ServerPhase }) =>
         dispatch({ type: 'phaseChanged', phase: d.phase }),
@@ -351,6 +371,8 @@ export function useRoom() {
       finaleState: (f: FinaleState) => dispatch({ type: 'finale', finale: f }),
       results: (r: ResultsDTO) => dispatch({ type: 'results', results: r }),
       queueExhausted: () => dispatch({ type: 'queueExhausted' }),
+      queueCapUpdate: (d: { maxSongs: number }) =>
+        dispatch({ type: 'queueCapUpdate', maxSongs: d.maxSongs }),
       playback: (d: {
         paused: boolean;
         positionMs: number;
@@ -502,13 +524,14 @@ export function useRoom() {
     [],
   );
   const react = useCallback((type: ReactionType) => {
-    if (type === 'chills') dispatch({ type: 'localChills' });
+    if (type === 'hype') dispatch({ type: 'localChills' });
     socket.emit('react', { type });
   }, []);
   const dislike = useCallback((on: boolean) => {
     dispatch({ type: 'localDislike', on });
     socket.emit('dislike', { on });
   }, []);
+  const rename = useCallback((name: string) => socket.emit('rename', { name }), []);
   const start = useCallback(
     () => emitAck<any>('startParty', { hostToken: hostTokenRef.current }),
     [],
@@ -557,6 +580,7 @@ export function useRoom() {
       removeSong,
       react,
       dislike,
+      rename,
       start,
       skip,
       playNow,

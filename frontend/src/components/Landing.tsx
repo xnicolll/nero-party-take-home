@@ -9,6 +9,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { API_BASE, LANES } from '../lib/nero';
 import { wavyLine } from '../lib/ink';
 import { prefersReducedMotion } from '../lib/motion';
+import { useSnippet } from '../hooks/useSnippet';
 import type { Track } from '../lib/types';
 import { Mark } from './marks';
 import { InkRule } from './ink';
@@ -44,6 +45,9 @@ export function Landing({
   const [leaving, setLeaving] = useState(false);
   const [artFail, setArtFail] = useState<Record<string, boolean>>({});
   const pickedRef = useRef<string | null>(null);
+
+  // hovering a card for a beat plays a taste of that track; one at a time
+  const snippet = useSnippet();
 
   // the columns drift on a rAF so a manual wheel can scrub them and the slow
   // auto-drift resumes a beat later; hover holds a column still to aim a pick
@@ -87,10 +91,23 @@ export function Landing({
 
   const pick = (t: Track, lane: string, el: HTMLElement) => {
     if (leaving || busy) return;
+    snippet.leave(t.id); // hush the preview as the party takes over
     pickedRef.current = t.id;
     setLeaving(true);
     onPick(t, lane, el.getBoundingClientRect());
   };
+
+  // browsers gate audio until a gesture; one muted play/pause on the first
+  // pointer or key press unlocks it so later hovers sound instantly
+  useEffect(() => {
+    const unlock = () => snippet.unlock();
+    window.addEventListener('pointerdown', unlock, { once: true });
+    window.addEventListener('keydown', unlock, { once: true });
+    return () => {
+      window.removeEventListener('pointerdown', unlock);
+      window.removeEventListener('keydown', unlock);
+    };
+  }, [snippet]);
 
   // one rAF drives all four columns: auto-drift unless a column is hovered
   // (held still to aim a pick) or was just scrolled by hand
@@ -218,8 +235,18 @@ export function Landing({
                             ? ' picked'
                             : '')
                         }
-                        style={{ animationDelay: `${(i % arts.length) * 55}ms` }}
+                        style={{
+                          animationDelay: `${(i % arts.length) * 55}ms`,
+                          ...(snippet.playingId === t.id
+                            ? {
+                                boxShadow:
+                                  '0 0 0 3px rgba(255,77,0,0.55), 0 8px 28px rgba(255,77,0,0.35)',
+                              }
+                            : null),
+                        }}
                         onClick={(e) => pick(t, lane, e.currentTarget)}
+                        onMouseEnter={() => snippet.enter(t.id, t.streamUrl, t.durationSec)}
+                        onMouseLeave={() => snippet.leave(t.id)}
                         aria-label={`Start the party with ${t.title} by ${t.artist}`}
                       >
                         {t.artworkUrl && !artFail[t.id] ? (
@@ -234,7 +261,7 @@ export function Landing({
                             className="sp-art-blank"
                             style={{ background: `oklch(0.85 0.05 ${t.hue})` }}
                           >
-                            <Mark name="groove" size={22} />
+                            <Mark name="note" size={22} />
                           </span>
                         )}
                         <span className="sp-art-meta">

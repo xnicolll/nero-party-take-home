@@ -1,7 +1,8 @@
 // ============================================================
 // NERO PARTY - the ghost-ink tour
-// First party only: the ink line draws three quick labelled
-// arrows over the REAL interface (the line, the marks, the reel).
+// First party only: the ink line draws a few quick labelled
+// arrows over the REAL interface for a fast spatial orientation
+// (now playing, the leaderboard, up next, the room).
 // Any click dismisses it forever. The ? button replays it.
 // ============================================================
 import { useEffect, useState } from 'react';
@@ -30,42 +31,81 @@ export function GhostTour({ onClose }: { onClose: () => void }) {
   };
 
   useEffect(() => {
-    const rect = (sel: string) => document.querySelector(sel)?.getBoundingClientRect();
-    const line = rect('.sp-party-line');
-    const marks = rect('.sp-marks');
-    const reel = rect('.sp-reel');
+    const el = (sel: string) => document.querySelector<HTMLElement>(sel);
+    const rect = (sel: string) => el(sel)?.getBoundingClientRect();
+    const clampX = (x: number) => Math.max(16, Math.min(window.innerWidth - 290, x));
+    const clampY = (y: number) => Math.max(16, Math.min(window.innerHeight - 80, y));
     const vw = window.innerWidth;
+
+    const now = rect('.sp-now-art');
+    const board = rect('.sp-board');
+    const deck = rect('.sp-deck');
+    const reel = rect('.sp-reel');
+    const faces = rect('.sp-faces');
+    const reelSearch = rect('.sp-searchtile');
     const found: Note[] = [];
-    if (line)
+
+    // 1 - now playing: chip above the art, arrow points down into it
+    if (now)
       found.push({
-        tx: Math.min(vw - 200, line.left + line.width * 0.68),
-        ty: line.top + line.height * 0.55,
-        lx: Math.min(vw - 320, line.left + line.width * 0.68 + 60),
-        ly: line.top + line.height + 56,
-        label: 'the song draws this line as it plays. every tap stamps it',
+        tx: now.left + now.width * 0.5,
+        ty: now.top + now.height * 0.18,
+        lx: clampX(now.left + now.width * 0.5 - 50),
+        ly: clampY(now.top - 72),
+        label: 'now playing',
         seed: 3,
-        tilt: -2,
+        tilt: -1.5,
       });
-    if (marks)
+
+    // 2 - leaderboard: chip to the right, arrow points left into the board
+    if (board)
       found.push({
-        tx: marks.left + marks.width * 0.5,
-        ty: marks.top + 6,
-        lx: marks.left + marks.width * 0.5 + 120,
-        ly: marks.top - 64,
-        label: 'tap what you feel, the second you feel it (keys 1-4, space)',
+        tx: board.left + board.width * 0.3,
+        ty: board.top + 40,
+        lx: clampX(board.right + 16),
+        ly: clampY(board.top + 8),
+        label: 'the leaderboard, finished songs climb here',
         seed: 5,
         tilt: 1.5,
       });
-    if (reel)
+
+    // 3 - queue deck (or reel): chip above, arrow points down into it
+    const nextEl = deck ?? reel;
+    if (nextEl)
       found.push({
-        tx: reel.left + reel.width * 0.3,
-        ty: reel.top + 48,
-        lx: reel.left + reel.width * 0.3 + 150,
-        ly: reel.top - 40,
-        label: 'tap any art to queue it next',
+        tx: nextEl.left + Math.min(nextEl.width * 0.3, 80),
+        ty: nextEl.top + 20,
+        lx: clampX(nextEl.left + 30),
+        ly: clampY(nextEl.top - 68),
+        label: 'up next - search bottom-right to add',
         seed: 8,
         tilt: -1,
       });
+
+    // also label the search tile if visible
+    if (reelSearch && !deck)
+      found.push({
+        tx: reelSearch.left + reelSearch.width * 0.5,
+        ty: reelSearch.top + 12,
+        lx: clampX(reelSearch.left - 200),
+        ly: clampY(reelSearch.top - 18),
+        label: 'search to add any song',
+        seed: 14,
+        tilt: 1,
+      });
+
+    // 4 - the faces: chip to their left, arrow points right
+    if (faces)
+      found.push({
+        tx: faces.left + 20,
+        ty: faces.top + faces.height * 0.25,
+        lx: clampX(Math.max(vw * 0.5, faces.left - 260)),
+        ly: clampY(faces.top + 8),
+        label: "the room - they react when you do",
+        seed: 11,
+        tilt: 2,
+      });
+
     setNotes(found);
   }, []);
 

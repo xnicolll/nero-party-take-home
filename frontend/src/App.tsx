@@ -36,6 +36,9 @@ export default function App() {
   const [showTour, setShowTour] = useState(false);
   // the paint transition between picking an art and landing in the party
   const [flood, setFlood] = useState<{ origin: FloodOrigin; art: string | null } | null>(null);
+  // true from the moment the flood starts until onReveal fires (when the fade begins),
+  // so the screen crossfades IN while the flood fades OUT rather than sequentially
+  const [flooding, setFlooding] = useState(false);
 
   // first party ever: the ghost-ink tour draws itself over the real UI
   useEffect(() => {
@@ -82,6 +85,7 @@ export default function App() {
     room.actions.reset();
     window.history.replaceState(null, '', '/');
     setJoinCode(null);
+    setFlooding(false);
     setFlood(null);
     window.scrollTo(0, 0);
   }, [room.actions]);
@@ -102,6 +106,7 @@ export default function App() {
       if (creating) return;
       setCreating(true);
       prime();
+      setFlooding(true);
       setFlood({
         origin: { x: rect.left, y: rect.top, w: rect.width, h: rect.height },
         art: track.artworkUrl,
@@ -110,12 +115,13 @@ export default function App() {
         name: `${track.artist} & friends`.slice(0, 36),
         hostName: 'you',
         lane,
-        maxSongs: 12,
+        maxSongs: 20,
         chillsBudget: 3,
         track,
       });
       setCreating(false);
       if (!r?.ok) {
+        setFlooding(false);
         setFlood(null);
         toast.custom(() => (
           <div className="sp-toast sp-toast-warn">
@@ -213,7 +219,14 @@ export default function App() {
           />
         </filter>
       </svg>
-      <div className="screen" key={screenKey}>
+      {/* neon bed under the screen while a party is starting / live, so the
+          landing -> party swap under the flood never flashes the cream page */}
+      {(flood || room.phase === 'party') && <div className="sp-flood-bg" aria-hidden />}
+      <div
+        className="screen"
+        key={screenKey}
+        style={{ opacity: flooding ? 0 : 1 }}
+      >
         {screen}
       </div>
       {flood && (
@@ -221,6 +234,9 @@ export default function App() {
           origin={flood.origin}
           art={flood.art}
           inviteUrl={room.party ? `${window.location.origin}/j/${room.party.joinCode}` : null}
+          hostName={room.you?.name ?? 'you'}
+          onRename={room.actions.rename}
+          onReveal={() => setFlooding(false)}
           onDone={() => setFlood(null)}
         />
       )}
@@ -248,10 +264,17 @@ export default function App() {
       )}
       <Toaster
         position="top-center"
-        offset={18}
+        offset={24}
         toastOptions={{
           unstyled: true,
-          style: { background: 'transparent', border: 'none', boxShadow: 'none', padding: 0 },
+          style: {
+            background: 'transparent',
+            border: 'none',
+            boxShadow: 'none',
+            padding: 0,
+            left: '50%',
+            transform: 'translateX(-50%)',
+          },
         }}
       />
     </>

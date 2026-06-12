@@ -211,7 +211,7 @@ export function Coronation({
                               className="sp-art-blank"
                               style={{ background: `oklch(0.85 0.05 ${r.hue})` }}
                             >
-                              <Mark name="groove" size={18} />
+                              <Mark name="note" size={18} />
                             </span>
                           )}
                           <span className="sp-wall-meta">

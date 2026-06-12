@@ -1,0 +1,90 @@
+/* ============================================================
+   NERO PARTY - the flood: editable host name
+   The one editable thing on the pre-party screen. An inline
+   "hosted by ___" line under the title: cream on the neon, the
+   name in the display face with a soft underline that brightens
+   to a confident bar on hover/focus. A pen hint surfaces on hover.
+   ============================================================ */
+.sp-flood-host {
+  margin: calc(var(--sp-s2) * -1) 0 0;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.4ch;
+  color: color-mix(in srgb, var(--sp-on-neon) 78%, transparent);
+  font-family: var(--sp-font-text);
+  font-size: var(--sp-text-base);
+  font-weight: 500;
+  letter-spacing: 0;
+}
+
+.sp-flood-name {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+/* the field reads as text, sized to its content; the underline lives on the
+   wrapper so the pen sits outside the underlined run */
+.sp-flood-name-input {
+  appearance: none;
+  pointer-events: auto;
+  min-width: 2ch;
+  margin: 0;
+  padding: 1px 1px 2px;
+  border: 0;
+  border-bottom: 1.5px solid color-mix(in srgb, var(--sp-on-neon) 38%, transparent);
+  border-radius: 2px;
+  background: transparent;
+  color: var(--sp-on-neon);
+  font-family: var(--sp-font-display);
+  font-size: 1.06em;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  text-align: center;
+  caret-color: var(--sp-on-neon);
+  transition:
+    border-color 0.18s ease,
+    background 0.18s ease;
+}
+.sp-flood-name-input::selection {
+  background: rgba(255, 246, 238, 0.28);
+}
+@media (hover: hover) and (pointer: fine) {
+  .sp-flood-name-input:hover {
+    border-bottom-color: color-mix(in srgb, var(--sp-on-neon) 64%, transparent);
+  }
+}
+.sp-flood-name-input:focus {
+  outline: none;
+  border-bottom-color: var(--sp-on-neon);
+  background: rgba(255, 246, 238, 0.1);
+}
+
+/* the pen: a quiet affordance that the name is tap-to-edit. It fades away
+   while editing so the field reads as pure text once you're in it. */
+.sp-flood-name-pen {
+  flex: none;
+  color: var(--sp-on-neon);
+  opacity: 0;
+  transform: translateY(0.5px) rotate(-6deg);
+  transition:
+    opacity 0.18s ease,
+    transform 0.2s var(--sp-ease-spring);
+}
+@media (hover: hover) and (pointer: fine) {
+  .sp-flood-name:hover .sp-flood-name-pen {
+    opacity: 0.66;
+    transform: translateY(0.5px) rotate(0deg);
+  }
+}
+.sp-flood-name[data-editing] .sp-flood-name-pen {
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sp-flood-name-input,
+  .sp-flood-name-pen {
+    transition-duration: 0.01ms;
+  }
+}

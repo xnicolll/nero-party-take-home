@@ -1,0 +1,132 @@
+/* ============================================================
+   LEADERBOARD - the live ranking on the neon-orange party.
+   Cream ink rows on hot paint; finished songs climb to the
+   song of the night. Capped, never scrolls.
+   ============================================================ */
+.sp-board {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-s3);
+  height: 100%;
+  min-height: 0;
+}
+
+.sp-board-head {
+  font-size: var(--sp-text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-weight: 600;
+  color: var(--sp-on-neon);
+  opacity: 0.66;
+}
+
+.sp-board-empty {
+  font-size: var(--sp-text-sm);
+  color: var(--sp-on-neon);
+  opacity: 0.5;
+  font-style: italic;
+}
+
+.sp-board-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-s2);
+}
+
+/* bare rows straight on the neon: cover thumb + cream text, no card.
+   Each row slides in from the left when it first mounts. */
+.sp-board-row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-s3);
+  padding: 3px 0;
+  color: var(--sp-on-neon);
+  min-width: 0;
+  animation: spBoardIn 0.6s var(--sp-ease-out) backwards;
+}
+@keyframes spBoardIn {
+  from {
+    opacity: 0;
+    transform: translateX(-18px);
+  }
+}
+
+/* #1: the night's frontrunner reads a touch bolder + brighter. */
+.sp-board-row-top {
+  position: relative;
+}
+.sp-board-row-top .sp-board-title {
+  font-weight: 700;
+}
+.sp-board-row-top .sp-board-title::before {
+  content: '';
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-right: var(--sp-s2);
+  border-radius: 50%;
+  background: var(--sp-on-neon);
+  vertical-align: middle;
+  transform: translateY(-1px);
+}
+
+.sp-board-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+  /* natural width (capped), so the heart count sits right beside the name
+     instead of being pushed to the far right of the rail */
+  flex: 0 1 auto;
+  max-width: 9.5rem;
+}
+
+.sp-board-title {
+  font-size: var(--sp-text-sm);
+  font-weight: 600;
+  color: var(--sp-on-neon);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sp-board-artist {
+  font-size: var(--sp-text-xs);
+  color: var(--sp-on-neon);
+  opacity: 0.62;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sp-board-score {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-s1);
+  flex-shrink: 0;
+  font-size: var(--sp-text-sm);
+  font-weight: 700;
+  color: var(--sp-on-neon);
+  font-variant-numeric: tabular-nums;
+}
+
+.sp-board-score svg {
+  color: var(--sp-on-neon);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sp-board-row {
+    animation: none;
+  }
+}
+
+.sp-board-more {
+  font-size: var(--sp-text-xs);
+  color: var(--sp-on-neon);
+  opacity: 0.6;
+  padding-left: var(--sp-s1);
+  letter-spacing: 0.02em;
+}

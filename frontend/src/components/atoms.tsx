@@ -39,7 +39,7 @@ export function AlbumArt({
           color: `oklch(0.62 0.1 ${hue})`,
         }}
       >
-        <Mark name="groove" size={Math.max(12, Math.round(size * 0.32))} />
+        <Mark name="note" size={Math.max(12, Math.round(size * 0.32))} />
       </div>
     );
   return (

@@ -1,106 +1,106 @@
 // ============================================================
-// NERO PARTY - the reaction marks
-// Five marks, five hues, zero chrome. Keys 1-4 + space (chills)
-// fire without looking; the chills budget is dots, not a number.
+// NERO PARTY - the reaction input
+// v3: the keyboard IS the controls, no buttons to mash.
+//   up    = like (a heart on the line + your face reacts)
+//   space = hype (the scarce greatest signal, 3 per party)
+//   down  = dislike (a skip vote; >50% of the room skips)
+// A slim hand-drawn legend keeps it clear; the pre-party beat teaches it.
 // ============================================================
 import { useEffect, useRef } from 'react';
-import { REACTIONS, REACTION_ORDER } from '../lib/nero';
 import type { ReactionType } from '../lib/types';
-import { EASE_OUT } from '../lib/motion';
 import { Mark } from './marks';
-
-// the tap blooms from the button you pressed - origin-aware feedback
-function bloomFrom(btn: HTMLButtonElement) {
-  btn.querySelector('.sp-markbtn-bloom')?.animate(
-    [
-      { opacity: 0.55, transform: 'scale(0.5)' },
-      { opacity: 0, transform: 'scale(2.1)' },
-    ],
-    { duration: 420, easing: EASE_OUT },
-  );
-  btn.animate([{ transform: 'scale(0.88)' }, { transform: 'scale(1)' }], {
-    duration: 280,
-    easing: EASE_OUT,
-  });
-}
 
 export function ReactionMarks({
   onReact,
-  chillsLeft,
+  onDislike,
+  disliked,
+  hypeLeft,
+  dislikeCount,
+  dislikeTotal,
   disabled,
 }: {
   onReact: (t: ReactionType) => void;
-  chillsLeft: number;
+  onDislike: (on: boolean) => void;
+  disliked: boolean;
+  hypeLeft: number;
+  dislikeCount: number;
+  dislikeTotal: number;
   disabled?: boolean;
 }) {
-  // read fresh chills inside the stable key handler without re-subscribing
-  const chillsRef = useRef(chillsLeft);
-  chillsRef.current = chillsLeft;
+  // a ref so the one global key handler always sees the latest props
+  const live = useRef({ onReact, onDislike, disliked, hypeLeft, disabled });
+  live.current = { onReact, onDislike, disliked, hypeLeft, disabled };
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.repeat || disabled) return;
-      // don't hijack keys while someone is typing in a field (search, names…)
+      if (e.repeat) return;
+      const r = live.current;
+      if (r.disabled) return;
+      // don't hijack keys while someone is typing (search, names)
       const el = document.activeElement;
       if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA')) return;
-      // space = chills (the scarce one) - react without looking
-      if (e.code === 'Space' || e.key === ' ') {
+      if (e.key === 'ArrowUp') {
         e.preventDefault();
-        if (chillsRef.current > 0) fireRef.current('chills'); // don't fire when you're out
-        return;
+        r.onReact('like');
+      } else if (e.code === 'Space' || e.key === ' ') {
+        e.preventDefault();
+        if (r.hypeLeft > 0) r.onReact('hype'); // scarce: nothing happens when you're out
+      } else if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        r.onDislike(!r.disliked);
       }
-      const i = parseInt(e.key, 10);
-      if (i >= 1 && i <= 4) fireRef.current(REACTION_ORDER[i - 1]);
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [onReact, disabled]);
+  }, []);
 
-  // keyboard reactions bloom from their button too
-  const btnRefs = useRef(new Map<ReactionType, HTMLButtonElement>());
-  const fire = (id: ReactionType, btn?: HTMLButtonElement | null) => {
-    const el = btn ?? btnRefs.current.get(id);
-    if (el) bloomFrom(el);
-    onReact(id);
-  };
-  const fireRef = useRef(fire);
-  fireRef.current = fire;
-
+  const dislikePct = Math.min(100, (dislikeCount / Math.max(1, dislikeTotal)) * 100);
   return (
-    <div className="sp-marks">
-      {REACTION_ORDER.map((id, i) => {
-        const r = REACTIONS[id];
-        const out = r.scarce && chillsLeft <= 0;
-        return (
-          <button
-            key={id}
-            ref={(el) => {
-              if (el) btnRefs.current.set(id, el);
-              else btnRefs.current.delete(id);
-            }}
-            className="sp-markbtn"
-            disabled={disabled || out}
-            style={{ color: r.color }}
-            onClick={(e) => fire(id, e.currentTarget)}
-            title={r.scarce ? 'space' : `key ${i + 1}`}
-            aria-label={`${r.label.toLowerCase()}${r.scarce ? `, ${chillsLeft} left (space)` : ` (key ${i + 1})`}`}
-          >
-            <span className="sp-markbtn-bloom" aria-hidden />
-            <span className="sp-markbtn-glyph" aria-hidden>
-              <Mark name={id} size={26} />
-            </span>
-            <span className="sp-markbtn-label" aria-hidden>
-              {r.label.toLowerCase()}
-            </span>
-            {r.scarce && (
-              <span className="sp-markbtn-dots" aria-hidden>
-                {Array.from({ length: Math.max(0, chillsLeft) }, (_, k) => (
-                  <i key={k} />
-                ))}
-              </span>
-            )}
-          </button>
-        );
-      })}
+    <div className={'sp-keys' + (disabled ? ' off' : '')}>
+      <button
+        type="button"
+        className="sp-input-key"
+        onClick={() => !disabled && onReact('like')}
+        disabled={disabled}
+        aria-label="Like this moment"
+      >
+        <span className="sp-input-glyph like" aria-hidden>
+          <Mark name="like" size={18} />
+        </span>
+        <kbd>up</kbd>
+        <em>like</em>
+      </button>
+      <button
+        type="button"
+        className="sp-input-key"
+        onClick={() => !disabled && hypeLeft > 0 && onReact('hype')}
+        disabled={disabled || hypeLeft <= 0}
+        aria-label={`Hype, ${hypeLeft} left`}
+      >
+        <span className="sp-input-glyph hype" aria-hidden>
+          <Mark name="hype" size={18} />
+        </span>
+        <kbd>space</kbd>
+        <em>hype</em>
+        <span className="sp-input-dots" aria-label={`${hypeLeft} hype left`}>
+          {Array.from({ length: 3 }, (_, i) => (
+            <i key={i} className={i < hypeLeft ? 'on' : ''} />
+          ))}
+        </span>
+      </button>
+      <button
+        type="button"
+        className={'sp-input-key sp-input-dislike' + (disliked ? ' on' : '')}
+        onClick={() => !disabled && onDislike(!disliked)}
+        disabled={disabled}
+        aria-pressed={disliked}
+      >
+        <span className="sp-input-glyph dislike" aria-hidden>
+          <Mark name="thumbsdown" size={18} />
+        </span>
+        <kbd>down</kbd>
+        <em>{disliked ? 'disliked' : 'dislike'}</em>
+        <span className="sp-input-fill" style={{ width: `${dislikePct}%` }} aria-hidden />
+      </button>
     </div>
   );
 }

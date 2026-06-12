@@ -151,7 +151,5 @@ export interface ReactionAdded {
   type: ReactionType;
   frac: number;
   weight: number;
-  color: string;
-  glyph: string;
   isBot: boolean;
 }

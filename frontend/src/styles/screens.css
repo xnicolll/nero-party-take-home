@@ -66,6 +66,17 @@
   flex-direction: column;
   padding: var(--sp-s8) var(--sp-s6) 0;
   overflow: hidden;
+  /* opaque, so the neon flood backdrop never bleeds through the landing */
+  background: var(--sp-bg);
+}
+
+/* a solid neon bed laid behind the screen the instant a party begins, so the
+   landing -> party handoff under the flood never flashes the cream page */
+.sp-flood-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background: var(--sp-neon);
 }
 .sp-pick-top {
   display: flex;
@@ -379,6 +390,38 @@
   line-height: 1.05;
   color: var(--sp-on-neon);
 }
+/* the scoring, taught once on the way in: up likes, space hypes, down skips */
+.sp-flood-legend {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 9px;
+  margin: calc(var(--sp-s2) * -1) 0 var(--sp-s1);
+}
+.sp-flood-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  color: var(--sp-on-neon);
+  font-family: var(--sp-font-text);
+  font-size: var(--sp-text-sm);
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+}
+.sp-flood-legend kbd {
+  font-family: var(--sp-font-text);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--sp-on-neon);
+  background: rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(255, 246, 238, 0.34);
+  border-radius: 5px;
+  padding: 2px 7px;
+  margin-right: 1px;
+}
 /* the one action: copy the link, then start. A paper pill on the paint. */
 .sp-flood-cta {
   appearance: none;
@@ -686,26 +729,83 @@
   overflow: visible;
 }
 
-/* main: art + meta left, chart + queue right */
-.sp-party-main {
+/* the stage: leaderboard left, now-playing center, nestled queue right */
+.sp-stage {
+  --sp-now-size: 300px; /* the now-playing art edge; the rails align to it */
   flex: 1;
   min-height: 0;
   display: grid;
-  grid-template-columns: 232px 1fr;
-  gap: var(--sp-s7);
+  grid-template-columns: 1fr minmax(300px, auto) 1fr;
+  /* top-align so the leaderboard starts at the art's top + the deck (given the
+     art's height) centres on the art's midline, not the taller now-column */
+  align-items: start;
+  gap: var(--sp-s5);
   padding-top: var(--sp-s4);
 }
-.sp-now-left {
-  min-height: 0;
+.sp-now {
+  min-width: 0;
   display: flex;
   flex-direction: column;
+  align-items: center;
+  text-align: center;
   gap: 6px;
+  /* raised above the queue deck so the deck can tuck behind the art */
+  position: relative;
+  z-index: 3;
+}
+.sp-now-by {
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: rgba(28, 24, 19, 0.6);
+  font-size: var(--sp-text-xs);
+  font-weight: 500;
+}
+.sp-now-controls {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-s2);
+  margin-top: var(--sp-s3);
 }
 .sp-now-art {
-  width: 208px;
-  border-radius: 16px;
-  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.28);
-  animation: spBreath 3.4s var(--sp-ease-inout) infinite;
+  border-radius: 18px;
+  box-shadow: 0 22px 50px rgba(0, 0, 0, 0.3);
+  /* the next cover slides in from the queue side as the last one crosses over,
+     then settles into a breathing idle */
+  animation:
+    spNowPop 0.85s var(--sp-ease-out) 0.12s both,
+    spBreath 3.4s var(--sp-ease-inout) 1.1s infinite;
+}
+@keyframes spNowPop {
+  from {
+    transform: translateX(86px) scaleX(0.72);
+    opacity: 0;
+  }
+  55% {
+    opacity: 1;
+  }
+  to {
+    transform: translateX(0) scaleX(1);
+    opacity: 1;
+  }
+}
+/* the finished cover, mid-flight from center to its leaderboard rank */
+.sp-finish-ghost {
+  position: fixed;
+  z-index: 60;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.34);
+  transform-origin: top left;
+  pointer-events: none;
+}
+.sp-finish-ghost img,
+.sp-finish-ghost .sp-art-blank {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 @keyframes spBreath {
   50% {
@@ -716,12 +816,13 @@
   border: none;
 }
 .sp-now-title {
-  margin: var(--sp-s2) 0 0;
+  margin: var(--sp-s3) 0 0;
   font-family: var(--sp-font-display);
   font-weight: 600;
-  font-size: clamp(1.25rem, 1.9vw, 1.6rem);
-  line-height: 1.05;
-  letter-spacing: -0.01em;
+  font-size: clamp(1.6rem, 2.6vw, 2.4rem);
+  line-height: 1.04;
+  letter-spacing: -0.02em;
+  max-width: 18ch;
 }
 .sp-now-artist {
   margin: 0;
@@ -962,14 +1063,130 @@
 .sp-party-foot {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: var(--sp-s5);
+  justify-content: center;
   padding: var(--sp-s3) 0;
 }
 .sp-feel {
   display: flex;
   align-items: center;
   gap: var(--sp-s5);
+}
+
+/* the reaction legend: up like / space hype / down dislike (the keyboard IS
+   the input; this is the persistent reminder, taught on the pre-party beat) */
+.sp-keys {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-s6);
+}
+.sp-keys.off {
+  opacity: 0.4;
+}
+.sp-input-key {
+  appearance: none;
+  background: transparent;
+  border: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0;
+  position: relative;
+  color: var(--sp-on-neon);
+  font-family: var(--sp-font-text);
+  font-size: var(--sp-text-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform var(--sp-dur-1) var(--sp-ease-out);
+}
+.sp-input-key:active:not(:disabled) {
+  transform: scale(0.94);
+}
+.sp-input-key:disabled {
+  cursor: default;
+}
+/* press feedback travels to the round glyph so the tap feels physical */
+@media (hover: hover) and (pointer: fine) {
+  .sp-input-key:hover:not(:disabled) .sp-input-glyph {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 0 rgba(28, 24, 19, 0.28);
+  }
+}
+.sp-input-glyph {
+  transition:
+    transform var(--sp-dur-1) var(--sp-ease-out),
+    box-shadow var(--sp-dur-1) var(--sp-ease-out);
+}
+.sp-input-glyph {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: var(--sp-card);
+  border: 1.5px solid var(--sp-ink);
+  box-shadow: 0 3px 0 rgba(28, 24, 19, 0.28);
+}
+.sp-input-glyph.like {
+  color: #ff3d7f;
+}
+.sp-input-glyph.hype {
+  color: #f0a400;
+}
+.sp-input-glyph.dislike {
+  color: var(--sp-cool);
+}
+.sp-keys kbd {
+  font-family: var(--sp-font-text);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  background: rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(255, 246, 238, 0.32);
+  border-radius: 5px;
+  padding: 2px 6px;
+}
+.sp-keys em {
+  font-style: normal;
+}
+.sp-input-dots {
+  display: inline-flex;
+  gap: 3px;
+  margin-left: 2px;
+}
+.sp-input-dots i {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: transparent;
+  transform: scale(0);
+  transition:
+    transform 0.35s var(--sp-ease-spring),
+    opacity 0.3s ease;
+  opacity: 0;
+}
+.sp-input-dots i.on {
+  background: rgba(255, 255, 255, 0.9);
+  transform: scale(1);
+  opacity: 1;
+}
+.sp-input-dislike {
+  cursor: pointer;
+}
+.sp-input-dislike:disabled {
+  cursor: default;
+}
+.sp-input-dislike.on {
+  color: var(--sp-cool);
+}
+.sp-input-fill {
+  position: absolute;
+  left: 0;
+  bottom: -3px;
+  height: 2px;
+  background: var(--sp-cool);
+  transition: width 0.4s var(--sp-ease-out);
 }
 .sp-hoststrip {
   display: flex;
@@ -1022,69 +1239,6 @@
 .sp-hostkey.warn {
   color: var(--sp-feels);
   border-color: var(--sp-feels);
-}
-
-/* guest doodles: the room lives on the right margin */
-.sp-doodles {
-  position: fixed;
-  right: 14px;
-  top: 50%;
-  transform: translateY(-50%);
-  z-index: 10;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--sp-s3);
-}
-.sp-doodle {
-  position: relative;
-  display: inline-flex;
-  filter: drop-shadow(0 2px 2px rgba(28, 24, 19, 0.25));
-  animation: spDeal 0.5s var(--sp-ease-spring) backwards;
-  outline: none;
-}
-.sp-doodle-crown {
-  position: absolute;
-  top: -7px;
-  right: -4px;
-  color: var(--sp-ink);
-}
-.sp-doodle-name {
-  position: absolute;
-  right: calc(100% + 8px);
-  top: 50%;
-  transform: translateY(-50%);
-  font-style: normal;
-  font-size: var(--sp-text-xs);
-  font-weight: 600;
-  color: var(--sp-ink);
-  background: var(--sp-card);
-  border: 1px solid var(--sp-line);
-  border-radius: 8px;
-  padding: 3px 9px;
-  white-space: nowrap;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity var(--sp-dur-2) ease;
-}
-.sp-doodle:hover .sp-doodle-name,
-.sp-doodle:focus-visible .sp-doodle-name,
-.sp-doodle-name.show {
-  opacity: 1;
-}
-/* hovering a person blows their doodle up so you can read who's who */
-.sp-doodle svg {
-  transition: transform var(--sp-dur-2) var(--sp-ease-spring);
-  transform-origin: center;
-}
-@media (hover: hover) and (pointer: fine) {
-  .sp-doodle:hover {
-    z-index: 4;
-  }
-  .sp-doodle:hover svg,
-  .sp-doodle:focus-visible svg {
-    transform: scale(1.6);
-  }
 }
 
 /* the ghost-ink tour */
@@ -1158,142 +1312,6 @@
   opacity: 0.85;
   animation: spIn 0.6s var(--sp-ease-out) 2.6s backwards;
 }
-.sp-marks {
-  display: flex;
-  gap: var(--sp-s3);
-}
-.sp-markbtn {
-  appearance: none;
-  background: transparent;
-  border: none;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 5px;
-  padding: 4px;
-  cursor: pointer;
-  position: relative;
-}
-.sp-markbtn-glyph {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 50px;
-  height: 50px;
-  border-radius: 50%;
-  background: var(--sp-card);
-  border: 1.5px solid var(--sp-ink);
-  box-shadow: 0 4px 0 rgba(28, 24, 19, 0.28);
-  transition:
-    transform 0.28s var(--sp-ease-spring),
-    box-shadow 0.15s ease;
-}
-@media (hover: hover) and (pointer: fine) {
-  .sp-markbtn:hover:not(:disabled) .sp-markbtn-glyph {
-    transform: translateY(-3px);
-    box-shadow: 0 7px 0 rgba(28, 24, 19, 0.28);
-  }
-}
-.sp-markbtn:active:not(:disabled) .sp-markbtn-glyph {
-  /* the jelly squish */
-  transform: translateY(3px) scale(1.1, 0.88);
-  box-shadow: 0 1px 0 rgba(28, 24, 19, 0.28);
-}
-.sp-markbtn:disabled {
-  opacity: 0.28;
-  cursor: default;
-}
-.sp-markbtn-bloom {
-  position: absolute;
-  top: 4px;
-  left: 50%;
-  width: 50px;
-  height: 50px;
-  margin-left: -25px;
-  border-radius: 50%;
-  background: radial-gradient(circle, currentColor 0%, transparent 65%);
-  opacity: 0;
-  pointer-events: none;
-}
-.sp-markbtn-label {
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.12em;
-  color: rgba(28, 24, 19, 0.72);
-}
-.sp-markbtn-dots {
-  display: flex;
-  gap: 3px;
-  min-height: 4px;
-}
-.sp-markbtn-dots i {
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
-  background: currentColor;
-}
-.sp-transport {
-  display: flex;
-  align-items: center;
-  gap: var(--sp-s4);
-  flex-wrap: wrap;
-}
-.sp-quiet {
-  appearance: none;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  background: transparent;
-  border: none;
-  border-bottom: 1px solid rgba(28, 24, 19, 0.3);
-  padding: 5px 2px;
-  color: rgba(28, 24, 19, 0.78);
-  font-family: var(--sp-font-text);
-  font-size: var(--sp-text-sm);
-  font-weight: 500;
-  cursor: pointer;
-  position: relative;
-  transition: color var(--sp-dur-2) ease;
-}
-.sp-quiet:hover:not(:disabled) {
-  color: var(--sp-ink);
-}
-.sp-quiet:disabled {
-  opacity: 0.4;
-  cursor: default;
-}
-/* dislike: a reaction-style chip, but in the cool teal that cools the room */
-.sp-dislike .sp-markbtn-glyph {
-  position: relative;
-  overflow: hidden;
-  color: var(--sp-cool);
-}
-.sp-dislike .sp-markbtn-glyph > svg {
-  position: relative;
-  z-index: 1;
-}
-/* the room's skip-vote rises as cool fill inside the cup */
-.sp-dislike-fill {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 0;
-  background: color-mix(in oklab, var(--sp-cool) 28%, transparent);
-  transition: height 0.45s var(--sp-ease-out);
-  pointer-events: none;
-}
-.sp-dislike.on .sp-markbtn-glyph {
-  background: var(--sp-cool);
-  border-color: var(--sp-cool);
-  color: var(--sp-on-neon);
-}
-.sp-dislike.on .sp-dislike-fill {
-  background: transparent;
-}
-.sp-dislike.on .sp-markbtn-label {
-  color: var(--sp-cool);
-}
 
 /* the reel */
 .sp-reel {
@@ -1308,23 +1326,87 @@
   justify-content: space-between;
   gap: var(--sp-s4);
 }
+/* the strip + the search tile sit in one row; the tile pins to the right */
+.sp-reel-body {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-s4);
+}
+.sp-reel-body .sp-reel-clip {
+  flex: 1;
+  min-width: 0;
+}
 .sp-reel-clip {
-  overflow: hidden;
+  /* clip the right edge so items don't overflow into the search tile, but
+     allow items to bleed off the left edge of the page and to lift upward
+     on hover (clip-path extends the clip region leftward and vertically) */
+  overflow: visible;
+  clip-path: inset(-24px 0 -24px -200vw);
+}
+/* prominent dark search tile, bottom-right, the way to add anything */
+.sp-searchtile {
+  flex: none;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  width: 88px;
+  height: 88px;
+  border: none;
+  border-radius: 14px;
+  background: var(--sp-card);
+  color: var(--sp-ink);
+  font-family: var(--sp-font-text);
+  font-size: var(--sp-text-xs);
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.32);
+  transition:
+    transform 0.3s var(--sp-ease-spring),
+    box-shadow 0.2s ease;
+}
+@media (hover: hover) and (pointer: fine) {
+  .sp-searchtile:hover:not(:disabled) {
+    transform: translateY(-4px) rotate(-2deg);
+    box-shadow: 0 16px 32px rgba(0, 0, 0, 0.38);
+  }
+}
+.sp-searchtile:active:not(:disabled) {
+  transform: scale(0.93);
+}
+.sp-searchtile:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+/* a shimmer row so the reel is present the instant the party opens */
+.sp-reel-skeleton {
+  display: flex;
+  gap: var(--sp-s4);
+}
+.sp-reel-skel {
+  flex: none;
+  width: 88px;
+  height: 88px;
+  border-radius: 12px;
+  background: rgba(255, 246, 238, 0.16);
+  animation: spReelSkel 1.2s ease-in-out infinite;
+}
+.sp-reel-skel:nth-child(even) {
+  animation-delay: 0.4s;
+}
+@keyframes spReelSkel {
+  50% {
+    opacity: 0.45;
+  }
 }
 .sp-reel-track {
   display: flex;
   gap: var(--sp-s4);
   width: max-content;
   will-change: transform;
-  animation: spReel 80s linear infinite;
-}
-.sp-reel-clip:hover .sp-reel-track {
-  animation-play-state: paused;
-}
-@keyframes spReel {
-  to {
-    transform: translateX(-50%);
-  }
+  /* animation driven by JS stepped conveyor - no CSS auto-scroll */
 }
 .sp-reel-item {
   appearance: none;
@@ -1798,7 +1880,9 @@
   padding: var(--sp-s6);
   border: none;
   border-radius: 16px;
-  background: var(--sp-card);
+  /* fill lives on the inked ::before so the white edge + the sketch border are
+     one displaced shape (no white poking past the outline) */
+  background: transparent;
   box-shadow: 0 14px 38px rgba(28, 24, 19, 0.18);
   transform: rotate(-1deg);
 }

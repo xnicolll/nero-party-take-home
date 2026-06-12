@@ -374,6 +374,14 @@
   filter: url(#sp-sketch);
   pointer-events: none;
 }
+/* dialog cards paint their white fill ON the displaced inked shape, so the
+   wobbly edge and the outline are one and the same (no white spilling past).
+   z-index keeps the filled shape behind the card's text (the card's transform
+   makes a stacking context, so it still sits above the scrim) */
+.sp-card::before {
+  background: var(--sp-card);
+  z-index: -1;
+}
 .sp-card::after,
 .sp-snippet::after,
 .sp-toast::after {

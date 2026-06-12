@@ -21,6 +21,7 @@ import {
   humanReact,
   playNow,
   removeSong,
+  renameParticipant,
   setDislike,
   startParty,
 } from '../room/engine.js';
@@ -90,7 +91,7 @@ export function registerSocketHandlers(io: Server): void {
             joinCode: await generateJoinCode(),
             name: cleanName(payload?.name, 'Untitled Party').slice(0, 36),
             lane,
-            maxSongs: clamp(payload?.maxSongs, 3, 12, 5),
+            maxSongs: clamp(payload?.maxSongs, 3, 100, 20),
             chillsBudget: clamp(payload?.chillsBudget, 1, 5, 3),
             hostToken: randomUUID(),
             phase: 'lobby',
@@ -258,6 +259,13 @@ export function registerSocketHandlers(io: Server): void {
       const room = roomFromSocket(socket);
       if (!room) return;
       setDislike(room, (socket.data as SocketData).participantId, payload?.on !== false);
+    });
+
+    // ---- rename yourself ----
+    socket.on('rename', (payload: any) => {
+      const room = roomFromSocket(socket);
+      if (!room) return;
+      renameParticipant(room, (socket.data as SocketData).participantId, payload?.name);
     });
 
     // ---- host: start ----

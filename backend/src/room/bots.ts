@@ -8,11 +8,10 @@ import type { Peak } from '../lib/waveform.js';
 import type { ReactionType } from '../constants.js';
 import type { BotScheduleEvent, MomentRuntime } from './state.js';
 
-const TYPES: ReactionType[] = ['drop', 'drop', 'groove', 'groove', 'feels', 'wtf'];
-
-// Build a per-song reaction schedule (window-space fracs) for the given bots.
-// `peaks` are expressed in window fractions (0..1 over the playable window).
-// `chillsBudget` is mutated as scarce chills are spent.
+// Build a per-song schedule (window-space fracs) for the given bots. Bots mostly
+// "like", clustering near peaks so genuine "syncs" happen at the drop, and spend
+// the occasional scarce "hype". `peaks` are window fractions (0..1).
+// `chillsBudget` (the per-bot hype allowance) is mutated as hype is spent.
 export function buildSchedule(
   seedDur: number,
   peaks: Peak[],
@@ -26,17 +25,15 @@ export function buildSchedule(
     const count = 1 + Math.floor(rnd() * 2); // 1-2 reactions, so humans drive the result
     for (let k = 0; k < count; k++) {
       let t: number;
-      let type: ReactionType;
       if (rnd() < 0.72 && peaks.length) {
         const p = peaks[Math.floor(rnd() * peaks.length)];
         t = p.c + (rnd() - 0.5) * p.w * 2.2;
-        type = rnd() < 0.5 ? 'drop' : TYPES[Math.floor(rnd() * TYPES.length)];
       } else {
         t = 0.08 + rnd() * 0.84;
-        type = TYPES[Math.floor(rnd() * TYPES.length)];
       }
+      let type: ReactionType = 'like';
       if (rnd() < 0.1 && chillsBudget[fid] > 0) {
-        type = 'chills';
+        type = 'hype';
         chillsBudget[fid]--;
       }
       evts.push({ t: Math.max(0.04, Math.min(0.97, t)), participantId: fid, type });

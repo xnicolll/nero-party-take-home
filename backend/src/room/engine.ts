@@ -236,7 +236,7 @@ async function spawnBot(
         const e = {
           t: Math.min(0.98, room.frac + 0.08 + rnd() * (remaining - 0.1)),
           participantId: row.id,
-          type: REACTION_ORDER[Math.floor(rnd() * 4)],
+          type: 'like' as ReactionType,
         };
         let i = room.cursor;
         while (i < room.schedule.length && room.schedule[i].t <= e.t) i++;
@@ -281,8 +281,6 @@ function doReaction(
     type,
     frac,
     weight: def.weight,
-    color: def.color,
-    glyph: def.glyph,
     isBot,
   });
   if (res.sync) emitRoom(room, 'syncBurst', { songId: song.id, frac, serverTime: now });
@@ -295,7 +293,9 @@ export function humanReact(room: Room, participantId: string, type: ReactionType
   if (!song) return;
   const p = room.participants.get(participantId);
   if (!p) return;
-  if (type === 'chills') {
+  if (type === 'hype') {
+    // chillsLeft is the scarce-budget field (kept as-is to avoid a DB migration);
+    // it now powers hype, the greatest signal, capped per party.
     if (p.chillsLeft <= 0) return;
     p.chillsLeft -= 1;
     prisma.participant
@@ -382,6 +382,14 @@ function advanceAfter(room: Room): void {
     song.played = true;
     prisma.queuedSong.update({ where: { id: song.id }, data: { played: true } }).catch(() => {});
   }
+  // every 5 songs played, quietly expand the queue cap by 5 so the party never
+  // runs out of room (starts at 20, grows to 25, 30, etc.)
+  const playedCount = room.songs.filter((s) => s.played).length;
+  if (playedCount > 0 && playedCount % 5 === 0) {
+    room.maxSongs += 5;
+    prisma.party.update({ where: { id: room.partyId }, data: { maxSongs: room.maxSongs } }).catch(() => {});
+    emitRoom(room, 'queueCapUpdate', { maxSongs: room.maxSongs });
+  }
   if (room.idx + 1 < room.songs.length) {
     room.idx += 1;
     startSong(room);
@@ -445,6 +453,20 @@ export function setDislike(room: Room, participantId: string, on: boolean): void
   emitRoom(room, 'dislikeUpdate', { count: room.dislikes.size, total: voterCount(room) });
   if (on && !p.isBot) rallyBots(room); // a human dislike rallies the room
   checkDislikeSkip(room);
+}
+
+// A participant renames themselves: trim, clamp to 1-24 chars, ignore empty,
+// then broadcast the new name to the whole room (incl. the caller).
+export function renameParticipant(room: Room, participantId: string, name: unknown): void {
+  const p = room.participants.get(participantId);
+  if (!p) return;
+  const next = String(name ?? '')
+    .trim()
+    .slice(0, 24);
+  if (!next || next === p.name) return;
+  p.name = next;
+  prisma.participant.update({ where: { id: p.id }, data: { name: next } }).catch(() => {});
+  emitRoom(room, 'participantRenamed', { participantId: p.id, name: next });
 }
 
 function rallyBots(room: Room): void {
