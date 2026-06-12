@@ -1,7 +1,7 @@
 // Mirror of the backend's wire DTOs (backend/src/types.ts).
 export type Phase = 'landing' | 'create' | 'lobby' | 'party' | 'finale' | 'coronation';
 export type ServerPhase = 'lobby' | 'party' | 'finale' | 'coronation';
-export type ReactionType = 'drop' | 'groove' | 'feels' | 'wtf' | 'chills';
+export type ReactionType = 'like' | 'hype';
 
 export interface Peak {
   c: number;
@@ -51,6 +51,7 @@ export interface SongDTO {
   heat: number;
   score: number;
   buckets: number[];
+  bucketsByType: Record<ReactionType, number[]>;
   counts: Partial<Record<ReactionType, number>>;
   syncs: number;
   pins: PinDTO[];
@@ -95,6 +96,7 @@ export interface MomentDTO {
   ts: string;
   heat: number;
   buckets: number[];
+  bucketsByType: Record<ReactionType, number[]>;
   glyph: ReactionType;
 }
 
@@ -152,8 +154,6 @@ export interface ReactionAdded {
   type: ReactionType;
   frac: number;
   weight: number;
-  color: string;
-  glyph: string;
   isBot: boolean;
 }
 

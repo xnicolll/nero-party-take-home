@@ -6,6 +6,7 @@
 import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { socket, emitAck } from '../lib/socket';
+import { fieldBus } from '../lib/fieldBus';
 import type {
   CurrentDTO,
   FinaleState,
@@ -17,6 +18,7 @@ import type {
   ServerPhase,
   Snapshot,
   SongDTO,
+  SyncBurst,
   Track,
 } from '../lib/types';
 
@@ -78,6 +80,7 @@ type Action =
   | { type: 'snapshot'; snap: Snapshot }
   | { type: 'participantJoined'; p: ParticipantDTO }
   | { type: 'participantLeft'; id: string }
+  | { type: 'participantRenamed'; id: string; name: string }
   | { type: 'queueUpdated'; songs: SongDTO[] }
   | { type: 'phaseChanged'; phase: ServerPhase }
   | { type: 'songChanged'; current: CurrentDTO }
@@ -87,6 +90,7 @@ type Action =
   | { type: 'finale'; finale: FinaleState }
   | { type: 'results'; results: ResultsDTO }
   | { type: 'queueExhausted' }
+  | { type: 'queueCapUpdate'; maxSongs: number }
   | { type: 'playback'; paused: boolean; serverTime: number; positionMs: number }
   | { type: 'localChills' }
   | { type: 'dislikeUpdate'; count: number; total: number }
@@ -139,6 +143,17 @@ function reducer(state: RoomState, action: Action): RoomState {
           p.id === action.id ? { ...p, connected: false } : p,
         ),
       };
+    case 'participantRenamed':
+      return {
+        ...state,
+        participants: state.participants.map((p) =>
+          p.id === action.id ? { ...p, name: action.name } : p,
+        ),
+        you:
+          state.you && state.you.participantId === action.id
+            ? { ...state.you, name: action.name }
+            : state.you,
+      };
     case 'queueUpdated':
       return { ...state, songs: action.songs };
     case 'phaseChanged':
@@ -158,6 +173,11 @@ function reducer(state: RoomState, action: Action): RoomState {
         awaitingMore: true,
         skipping: false,
         songs: state.songs.map((s) => ({ ...s, played: true })),
+      };
+    case 'queueCapUpdate':
+      return {
+        ...state,
+        party: state.party ? { ...state.party, maxSongs: action.maxSongs } : state.party,
       };
     case 'playback':
       return {
@@ -194,8 +214,16 @@ function reducer(state: RoomState, action: Action): RoomState {
       const songs = state.songs.map((s) => {
         if (s.id !== r.songId) return s;
         const counts = { ...s.counts, [r.type]: (s.counts[r.type] || 0) + 1 };
-        const heat = s.heat + r.weight;
-        const next = { ...s, counts, heat, score: 0 };
+        // fold into the heat timeline with the server's exact bucket math so the
+        // live ribbon paints instantly; snapshot/songChanged re-sync authoritatively
+        const B = s.buckets.length || 48;
+        const b = Math.min(B - 1, Math.floor(r.frac * B));
+        const buckets = s.buckets.slice();
+        buckets[b] += r.weight;
+        const lane = (s.bucketsByType?.[r.type] ?? Array(B).fill(0)).slice();
+        lane[b] += r.weight;
+        const bucketsByType = { ...s.bucketsByType, [r.type]: lane };
+        const next = { ...s, counts, heat: s.heat + r.weight, buckets, bucketsByType, score: 0 };
         next.score = recompute(next);
         return next;
       });
@@ -217,8 +245,12 @@ function reducer(state: RoomState, action: Action): RoomState {
     case 'syncBurst': {
       const songs = state.songs.map((s) => {
         if (s.id !== action.songId) return s;
-        const heat = s.heat + 3;
-        const next = { ...s, heat, syncs: s.syncs + 1, score: 0 };
+        // mirror the server's sync bonus into the type-agnostic timeline
+        const B = s.buckets.length || 48;
+        const b = Math.min(B - 1, Math.floor(action.frac * B));
+        const buckets = s.buckets.slice();
+        buckets[b] += 3;
+        const next = { ...s, heat: s.heat + 3, buckets, syncs: s.syncs + 1, score: 0 };
         next.score = recompute(next);
         return next;
       });
@@ -305,35 +337,43 @@ export function useRoom() {
     socket.on('connect', onConnect);
     socket.on('disconnect', onDisconnect);
 
-    socket.on('participantJoined', (d: { participant: ParticipantDTO }) =>
-      dispatch({ type: 'participantJoined', p: d.participant }),
-    );
-    socket.on('participantLeft', (d: { participantId: string }) =>
-      dispatch({ type: 'participantLeft', id: d.participantId }),
-    );
-    socket.on('queueUpdated', (d: { songs: SongDTO[] }) =>
-      dispatch({ type: 'queueUpdated', songs: d.songs }),
-    );
-    socket.on('phaseChanged', (d: { phase: ServerPhase }) =>
-      dispatch({ type: 'phaseChanged', phase: d.phase }),
-    );
-    socket.on('songChanged', (c: CurrentDTO) => {
-      setAnchor(c.serverTime, c.positionMs, c.effectiveDurationMs);
-      dispatch({ type: 'songChanged', current: c });
-    });
-    socket.on('reactionAdded', (r: ReactionAdded) => dispatch({ type: 'reactionAdded', r }));
-    socket.on('syncBurst', (d: { songId: string; frac: number }) =>
-      dispatch({ type: 'syncBurst', songId: d.songId, frac: d.frac }),
-    );
-    socket.on('leaderboardUpdate', (d: { order: LeaderRow[] }) =>
-      dispatch({ type: 'leaderboard', order: d.order }),
-    );
-    socket.on('finaleState', (f: FinaleState) => dispatch({ type: 'finale', finale: f }));
-    socket.on('results', (r: ResultsDTO) => dispatch({ type: 'results', results: r }));
-    socket.on('queueExhausted', () => dispatch({ type: 'queueExhausted' }));
-    socket.on(
-      'playback',
-      (d: {
+    // named handlers so cleanup detaches exactly these - socket.off('event')
+    // with no ref would silently drop every other subscriber on that event
+    const handlers = {
+      participantJoined: (d: { participant: ParticipantDTO }) =>
+        dispatch({ type: 'participantJoined', p: d.participant }),
+      participantLeft: (d: { participantId: string }) =>
+        dispatch({ type: 'participantLeft', id: d.participantId }),
+      participantRenamed: (d: { participantId: string; name: string }) =>
+        dispatch({ type: 'participantRenamed', id: d.participantId, name: d.name }),
+      queueUpdated: (d: { songs: SongDTO[] }) => dispatch({ type: 'queueUpdated', songs: d.songs }),
+      phaseChanged: (d: { phase: ServerPhase }) =>
+        dispatch({ type: 'phaseChanged', phase: d.phase }),
+      songChanged: (c: CurrentDTO) => {
+        setAnchor(c.serverTime, c.positionMs, c.effectiveDurationMs);
+        dispatch({ type: 'songChanged', current: c });
+      },
+      reactionAdded: (r: ReactionAdded) => {
+        fieldBus.emit('reaction', {
+          type: r.type,
+          frac: r.frac,
+          weight: r.weight,
+          isBot: r.isBot,
+          participantId: r.participantId,
+        });
+        dispatch({ type: 'reactionAdded', r });
+      },
+      syncBurst: (d: SyncBurst) => {
+        dispatch({ type: 'syncBurst', songId: d.songId, frac: d.frac });
+      },
+      leaderboardUpdate: (d: { order: LeaderRow[] }) =>
+        dispatch({ type: 'leaderboard', order: d.order }),
+      finaleState: (f: FinaleState) => dispatch({ type: 'finale', finale: f }),
+      results: (r: ResultsDTO) => dispatch({ type: 'results', results: r }),
+      queueExhausted: () => dispatch({ type: 'queueExhausted' }),
+      queueCapUpdate: (d: { maxSongs: number }) =>
+        dispatch({ type: 'queueCapUpdate', maxSongs: d.maxSongs }),
+      playback: (d: {
         paused: boolean;
         positionMs: number;
         serverTime: number;
@@ -347,42 +387,25 @@ export function useRoom() {
           positionMs: d.positionMs,
         });
       },
-    );
-    socket.on('tick', (d: { positionMs: number; serverTime: number }) =>
-      setAnchor(d.serverTime, d.positionMs, anchor.current.effDur),
-    );
-    socket.on('dislikeUpdate', (d: { count: number; total: number }) =>
-      dispatch({ type: 'dislikeUpdate', count: d.count, total: d.total }),
-    );
-    // a skip (host or auto): freeze + grey the UI, and fire the toast in App
-    socket.on('songSkipped', (d: { title: string; reason: string }) => {
-      dispatch({ type: 'songSkipped' });
-      setSkipEvent({ title: d.title, reason: d.reason, n: ++skipN.current });
-    });
-    // server-pushed failures (e.g. start party with <2 guests / no songs)
-    socket.on('errorMsg', (d: { message?: string }) =>
-      toast.error(d?.message ?? 'Something went wrong'),
-    );
+      tick: (d: { positionMs: number; serverTime: number }) =>
+        setAnchor(d.serverTime, d.positionMs, anchor.current.effDur),
+      dislikeUpdate: (d: { count: number; total: number }) =>
+        dispatch({ type: 'dislikeUpdate', count: d.count, total: d.total }),
+      // a skip (host or auto): freeze + grey the UI, and fire the toast in App
+      songSkipped: (d: { title: string; reason: string }) => {
+        dispatch({ type: 'songSkipped' });
+        setSkipEvent({ title: d.title, reason: d.reason, n: ++skipN.current });
+      },
+      // server-pushed failures (e.g. start party with <2 guests / no songs)
+      errorMsg: (d: { message?: string }) => toast.error(d?.message ?? 'Something went wrong'),
+    };
+    type Listener = (...args: any[]) => void;
+    for (const [ev, fn] of Object.entries(handlers)) socket.on(ev, fn as Listener);
 
     return () => {
       socket.off('connect', onConnect);
       socket.off('disconnect', onDisconnect);
-      socket.off('participantJoined');
-      socket.off('participantLeft');
-      socket.off('queueUpdated');
-      socket.off('phaseChanged');
-      socket.off('songChanged');
-      socket.off('reactionAdded');
-      socket.off('syncBurst');
-      socket.off('leaderboardUpdate');
-      socket.off('finaleState');
-      socket.off('results');
-      socket.off('queueExhausted');
-      socket.off('playback');
-      socket.off('tick');
-      socket.off('dislikeUpdate');
-      socket.off('songSkipped');
-      socket.off('errorMsg');
+      for (const [ev, fn] of Object.entries(handlers)) socket.off(ev, fn as Listener);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -444,6 +467,7 @@ export function useRoom() {
       lane: string;
       maxSongs: number;
       chillsBudget: number;
+      track?: Track; // instant party: queue this and start on the spot
     }) => {
       const r = await emitAck<any>('createParty', cfg);
       if (r?.ok) {
@@ -500,18 +524,23 @@ export function useRoom() {
     [],
   );
   const react = useCallback((type: ReactionType) => {
-    if (type === 'chills') dispatch({ type: 'localChills' });
+    if (type === 'hype') dispatch({ type: 'localChills' });
     socket.emit('react', { type });
   }, []);
   const dislike = useCallback((on: boolean) => {
     dispatch({ type: 'localDislike', on });
     socket.emit('dislike', { on });
   }, []);
+  const rename = useCallback((name: string) => socket.emit('rename', { name }), []);
   const start = useCallback(
     () => emitAck<any>('startParty', { hostToken: hostTokenRef.current }),
     [],
   );
   const skip = useCallback(() => socket.emit('hostSkip', { hostToken: hostTokenRef.current }), []);
+  const playNow = useCallback(
+    (songId: string) => socket.emit('hostPlayNow', { hostToken: hostTokenRef.current, songId }),
+    [],
+  );
   const end = useCallback(() => socket.emit('hostEnd', { hostToken: hostTokenRef.current }), []);
   const finish = useCallback(
     () => socket.emit('finishParty', { hostToken: hostTokenRef.current }),
@@ -551,8 +580,10 @@ export function useRoom() {
       removeSong,
       react,
       dislike,
+      rename,
       start,
       skip,
+      playNow,
       end,
       finish,
       pausePlayback,

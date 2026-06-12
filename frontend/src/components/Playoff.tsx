@@ -1,17 +1,22 @@
 // ============================================================
-// NERO PARTY - finale playoff
-// the server runs the bracket + bot votes; the client renders + casts one vote.
+// NERO PARTY - finale playoff, on paper
+// Two moments face off. Your vote splashes paint behind your
+// pick; the room's tally IS the size of each paint blob. When
+// it's decided, the ink line underlines the winner. The server
+// runs the bracket + bot votes; the client renders + casts one.
 // ============================================================
 import { useEffect, useRef, useState } from 'react';
 import { REACTIONS } from '../lib/nero';
 import type { FinaleState, MomentDTO } from '../lib/types';
-import { AlbumArt, Eyebrow, HeatShape, RGlyph, StarField } from './atoms';
+import { EASE_OUT } from '../lib/motion';
+import { AlbumArt } from './atoms';
+import { Mark } from './marks';
+import { InkUnderline } from './ink';
 
 function MomentCard({
   moment,
+  share,
   picked,
-  votes,
-  total,
   winner,
   dimmed,
   playing,
@@ -21,9 +26,8 @@ function MomentCard({
   onPreview,
 }: {
   moment: MomentDTO;
+  share: number; // the room's vote share - the blob's size
   picked: boolean;
-  votes: number;
-  total: number;
   winner: boolean;
   dimmed: boolean;
   playing: boolean;
@@ -32,55 +36,74 @@ function MomentCard({
   onLeave: () => void;
   onPreview: () => void;
 }) {
+  const color = REACTIONS[moment.glyph].color;
+  const ref = useRef<HTMLButtonElement>(null);
+  // a fresh vote splashes
+  useEffect(() => {
+    if (!picked || !ref.current) return;
+    ref.current
+      .querySelector('.sp-duel-blob')
+      ?.animate(
+        [
+          { transform: `translate(-50%, -50%) scale(${0.4 + share})` },
+          { transform: `translate(-50%, -50%) scale(${0.75 + share})` },
+          { transform: `translate(-50%, -50%) scale(${0.55 + share})` },
+        ],
+        { duration: 500, easing: EASE_OUT },
+      );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [picked]);
+
   return (
     <button
+      ref={ref}
       className={
-        'mcard' +
-        (picked ? ' mcard-picked' : '') +
-        (winner ? ' mcard-winner' : '') +
-        (dimmed ? ' mcard-dim' : '') +
-        (playing ? ' mcard-playing' : '')
+        'sp-duel-card' +
+        (picked ? ' picked' : '') +
+        (winner ? ' winner' : '') +
+        (dimmed ? ' dim' : '')
       }
       onClick={onPick ?? undefined}
       onMouseEnter={onHover}
       onMouseLeave={onLeave}
       disabled={!onPick}
     >
-      <div className="mcard-top">
+      <span
+        className="sp-duel-blob"
+        style={{
+          background: color,
+          transform: `translate(-50%, -50%) scale(${0.45 + share * 1.05})`,
+        }}
+        aria-hidden
+      />
+      <span className="sp-duel-art">
         <AlbumArt
-          artworkUrl={moment.artworkUrl}
+          artworkUrl={moment.artworkUrl?.replace('100x100', '400x400') ?? null}
           hue={moment.hue}
-          size={72}
-          radius={12}
+          size={184}
+          radius={16}
           alt={`${moment.title} by ${moment.artist}`}
         />
-        <RGlyph type={moment.glyph} size={26} />
-      </div>
-      <h3 className="mcard-title">{moment.title}</h3>
-      <p className="mcard-artist">{moment.artist}</p>
-      <div className="mcard-ts mono">at {moment.ts}</div>
+        <span className="sp-duel-mark" style={{ color }}>
+          <Mark name={moment.glyph} size={20} strokeWidth={2.2} />
+        </span>
+      </span>
+      <h3 className="sp-duel-title">{moment.title}</h3>
+      <p className="sp-duel-artist">{moment.artist}</p>
       {/* plain span (not a nested button): tap to preview without casting a vote */}
       <span
-        className="mcard-playhint"
+        className={'sp-duel-hint' + (playing ? ' on' : '')}
         onClick={(e) => {
           e.stopPropagation();
           onPreview();
         }}
       >
-        {playing ? (
-          <>
-            <span className="dot" />
-            playing this moment
-          </>
-        ) : (
-          'hover to hear it'
-        )}
+        {playing ? 'playing this moment' : 'hear it'}
       </span>
-      <HeatShape buckets={moment.buckets} color={REACTIONS[moment.glyph].color} w={180} h={30} />
-      <div className="mcard-votes">
-        <span className="mcard-bar" style={{ width: total ? (votes / total) * 100 + '%' : 0 }} />
-        <span className="mcard-count mono">{votes > 0 ? votes : ''}</span>
-      </div>
+      <span className="sp-duel-under">
+        {winner && <InkUnderline width={150} stroke={3} delay={150} />}
+      </span>
+      <span className="sp-duel-vote sp-label">{picked ? 'your vote' : ' '}</span>
     </button>
   );
 }
@@ -154,6 +177,8 @@ export function Playoff({ finale, onVote }: { finale: FinaleState; onVote: (s: 0
   if (!finale.pair) return null;
   const total = finale.votes[0] + finale.votes[1];
   const decided = finale.decided;
+  const share0 =
+    decided != null ? (decided === 0 ? 0.95 : 0.05) : total ? finale.votes[0] / total : 0.5;
 
   const pick = (s: 0 | 1) => {
     if (picked != null || decided != null) return;
@@ -162,28 +187,30 @@ export function Playoff({ finale, onVote }: { finale: FinaleState; onVote: (s: 0
   };
 
   return (
-    <div className="playoff">
-      <StarField />
-      <Eyebrow>
-        THE FINALE ·{' '}
-        {finale.stage === 'final'
-          ? 'GRAND FINAL'
-          : `SEMIFINAL ${finale.round + 1} OF ${finale.matchCount}`}
-      </Eyebrow>
-      <h2 className="playoff-title">Which moment hit harder?</h2>
-      <p className="playoff-sub">
-        {picked == null && decided == null
-          ? 'Cast your vote, the room follows.'
-          : decided != null
-            ? 'Decided.'
-            : 'The room is voting…'}
-      </p>
-      <div className="playoff-pair">
+    <div className="sp-finale">
+      <header className="sp-finale-head">
+        <p className="sp-label sp-in">
+          the finale ·{' '}
+          {finale.stage === 'final'
+            ? 'grand final'
+            : `semifinal ${finale.round + 1} of ${finale.matchCount}`}
+        </p>
+        <h2 className="sp-finale-title sp-in" style={{ animationDelay: '0.1s' }}>
+          Which moment hit harder?
+        </h2>
+        <p className="sp-hint sp-in" style={{ animationDelay: '0.2s' }} role="status">
+          {picked == null && decided == null
+            ? 'cast your vote - the splash grows with the room'
+            : decided != null
+              ? 'decided.'
+              : 'the room is voting…'}
+        </p>
+      </header>
+      <div className="sp-duel">
         <MomentCard
           moment={finale.pair[0]}
+          share={share0}
           picked={picked === 0}
-          votes={finale.votes[0]}
-          total={total}
           winner={decided === 0}
           dimmed={decided === 1}
           playing={previewing === 0}
@@ -192,12 +219,13 @@ export function Playoff({ finale, onVote }: { finale: FinaleState; onVote: (s: 0
           onLeave={cancelHover}
           onPreview={() => togglePreview(0, finale.pair![0])}
         />
-        <span className="playoff-vs">vs</span>
+        <span className="sp-duel-vs" aria-hidden>
+          vs
+        </span>
         <MomentCard
           moment={finale.pair[1]}
+          share={1 - share0}
           picked={picked === 1}
-          votes={finale.votes[1]}
-          total={total}
           winner={decided === 1}
           dimmed={decided === 0}
           playing={previewing === 1}

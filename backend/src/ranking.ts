@@ -29,6 +29,7 @@ export function addReaction(
   song.heat += w;
   const b = Math.min(BUCKETS - 1, Math.floor(frac * BUCKETS));
   song.buckets[b] += w;
+  song.bucketsByType[type][b] += w;
 
   room.recent = room.recent.filter((r) => now - r.t < SYNC_WINDOW_MS);
   room.recent.push({ t: now, participantId, frac });
@@ -42,7 +43,9 @@ export function addReaction(
     room.recent = [];
     sync = true;
   }
-  song.score = song.heat / (song.durationSec / 60);
+  // score = likes + sync bonuses + hype weight. Every song gets the same ~30s
+  // preview, so raw heat is already a fair comparison (no per-minute scaling).
+  song.score = song.heat;
   return { bucket: b, sync };
 }
 
@@ -52,12 +55,6 @@ export function rankedOrder(room: Room): string[] {
     .filter((s) => s.played || s.position === room.idx)
     .sort((a, b) => b.score - a.score)
     .map((s) => s.id);
-}
-
-function entropy(s: SongRuntime): number {
-  const counts = Object.values(s.counts) as number[];
-  const tot = counts.reduce((a, b) => a + b, 0) || 1;
-  return -counts.reduce((acc, c) => acc + (c / tot) * Math.log(c / tot), 0);
 }
 
 function slowBurn(s: SongRuntime): number {
@@ -96,41 +93,41 @@ export function computeResults(room: Room): RawResults {
       });
   });
   cand.sort((a, b) => b.heat - a.heat);
+  // diversity first: the best moment of each song, then second-bests fill
+  // the gaps, so the playoff never has to pit a song against itself
   const moments: MomentRuntime[] = [];
   const perSong: Record<string, number> = {};
-  for (const c of cand) {
-    if ((perSong[c.song.id] || 0) >= 2) continue;
-    perSong[c.song.id] = (perSong[c.song.id] || 0) + 1;
-    moments.push(c);
-    if (moments.length === 4) break;
+  for (const pass of [1, 2]) {
+    for (const c of cand) {
+      if (moments.length === 4) break;
+      if (moments.includes(c)) continue;
+      if ((perSong[c.song.id] || 0) >= pass) continue;
+      perSong[c.song.id] = (perSong[c.song.id] || 0) + 1;
+      moments.push(c);
+    }
   }
 
   const by = (fn: (s: SongRuntime) => number): SongRuntime | undefined =>
     [...played].sort((a, b) => fn(b) - fn(a))[0];
 
+  const peakOf = (s: SongRuntime): number => Math.max(0, ...s.buckets);
   const superlatives: RawSuperlative[] = [
     {
-      key: 'BEST DROP',
-      desc: 'most ▲ DROP reactions',
-      song: by((s) => s.counts.drop || 0),
+      key: 'CROWD FAVOURITE',
+      desc: 'the most likes of the night',
+      song: by((s) => s.counts.like || 0),
       stat: '',
     },
-    {
-      key: 'MOST SYNCED',
-      desc: 'collective moments hit together',
-      song: by((s) => s.syncs),
-      stat: '',
-    },
-    { key: 'MOST DIVISIVE', desc: 'split the room five ways', song: by(entropy), stat: '' },
-    { key: 'SLOW BURNER', desc: 'heat spread end to end', song: by(slowBurn), stat: '' },
+    { key: 'BIGGEST PEAK', desc: 'the loudest single moment', song: by(peakOf), stat: '' },
+    { key: 'MOST SYNCED', desc: 'the room hit it together most', song: by((s) => s.syncs), stat: '' },
+    { key: 'SLOW BURNER', desc: 'loved end to end', song: by(slowBurn), stat: '' },
   ];
   // Fill stat strings (need the chosen song).
-  if (superlatives[0].song) superlatives[0].stat = `${superlatives[0].song.counts.drop || 0} drops`;
-  if (superlatives[1].song) superlatives[1].stat = `${superlatives[1].song.syncs} syncs`;
-  if (superlatives[2].song)
-    superlatives[2].stat = `${Object.keys(superlatives[2].song.counts).length} reaction types`;
-  if (superlatives[3].song)
-    superlatives[3].stat = `${superlatives[3].song.heat.toFixed(0)} total heat`;
+  if (superlatives[0].song) superlatives[0].stat = `${superlatives[0].song.counts.like || 0} likes`;
+  if (superlatives[1].song)
+    superlatives[1].stat = `peak of ${peakOf(superlatives[1].song).toFixed(0)}`;
+  if (superlatives[2].song) superlatives[2].stat = `${superlatives[2].song.syncs} synced moments`;
+  if (superlatives[3].song) superlatives[3].stat = `${superlatives[3].song.heat.toFixed(0)} total`;
 
   return { ranked, moments, superlatives };
 }
@@ -143,5 +140,5 @@ export function topGlyph(moment: MomentRuntime): ReactionType {
   const best = (Object.keys(counts) as ReactionType[]).sort(
     (a, b) => (counts[b] || 0) - (counts[a] || 0),
   )[0];
-  return best || 'drop';
+  return best || 'like';
 }

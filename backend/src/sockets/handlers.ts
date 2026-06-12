@@ -19,7 +19,9 @@ import {
   hostResume,
   hostSkip,
   humanReact,
+  playNow,
   removeSong,
+  renameParticipant,
   setDislike,
   startParty,
 } from '../room/engine.js';
@@ -89,7 +91,7 @@ export function registerSocketHandlers(io: Server): void {
             joinCode: await generateJoinCode(),
             name: cleanName(payload?.name, 'Untitled Party').slice(0, 36),
             lane,
-            maxSongs: clamp(payload?.maxSongs, 3, 12, 5),
+            maxSongs: clamp(payload?.maxSongs, 3, 100, 20),
             chillsBudget: clamp(payload?.chillsBudget, 1, 5, 3),
             hostToken: randomUUID(),
             phase: 'lobby',
@@ -115,6 +117,13 @@ export function registerSocketHandlers(io: Server): void {
           isHost: true,
         } satisfies SocketData;
         armBotTimers(room);
+        // instant party: picking an album art IS the start - queue it and go,
+        // no lobby; bots (and friends via the link) trickle in mid-song
+        const instantTrack = payload?.track ? sanitizeTrack(payload.track) : null;
+        if (instantTrack) {
+          await addSongToRoom(room, instantTrack, host.id);
+          await startParty(room, { allowSolo: true });
+        }
         ack?.({
           ok: true,
           joinCode: party.joinCode,
@@ -252,6 +261,13 @@ export function registerSocketHandlers(io: Server): void {
       setDislike(room, (socket.data as SocketData).participantId, payload?.on !== false);
     });
 
+    // ---- rename yourself ----
+    socket.on('rename', (payload: any) => {
+      const room = roomFromSocket(socket);
+      if (!room) return;
+      renameParticipant(room, (socket.data as SocketData).participantId, payload?.name);
+    });
+
     // ---- host: start ----
     socket.on('startParty', async (payload: any, ack?: (r: any) => void) => {
       const room = roomFromSocket(socket);
@@ -268,6 +284,12 @@ export function registerSocketHandlers(io: Server): void {
       const room = roomFromSocket(socket);
       if (!room || payload?.hostToken !== room.hostToken) return;
       hostSkip(room);
+    });
+    // host taps a queued song: play it right now
+    socket.on('hostPlayNow', (payload: any) => {
+      const room = roomFromSocket(socket);
+      if (!room || payload?.hostToken !== room.hostToken) return;
+      playNow(room, String(payload?.songId ?? ''));
     });
     socket.on('hostEnd', (payload: any) => {
       const room = roomFromSocket(socket);
@@ -297,7 +319,7 @@ export function registerSocketHandlers(io: Server): void {
       const room = roomFromSocket(socket);
       if (!room) return ack?.({ recs: [] });
       try {
-        const recs = await buildRecs(room, 5);
+        const recs = await buildRecs(room, 12);
         ack?.({ recs });
       } catch {
         ack?.({ recs: [] });

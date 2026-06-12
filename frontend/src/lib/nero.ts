@@ -3,37 +3,30 @@
 // just the static bits (reactions, lanes, helpers); the live simulation
 // (bots, schedules, results) lives on the server.
 // ============================================================
-import type { Peak, ReactionType } from './types';
+import type { ReactionType } from './types';
 
 export interface ReactionDef {
   id: ReactionType;
   label: string;
-  glyph: string;
-  color: string;
+  hue: number; // the reaction's place on the spectrum (field + ribbons)
+  color: string; // bright enough to read as light on the dark room
   weight: number;
   scarce?: boolean;
 }
 
+// v3: a binary like + the scarce hype. Colours are the ink marks' fills on the
+// neon party (a warm heart, a gold hype); dislike is the cool teal, handled
+// separately as a skip vote. Tuned against the orange bg in the layout pass.
 export const REACTIONS: Record<ReactionType, ReactionDef> = {
-  drop: { id: 'drop', label: 'DROP', glyph: '🫳', color: 'oklch(0.6 0.16 45)', weight: 1 },
-  groove: { id: 'groove', label: 'GROOVE', glyph: '🎶', color: 'oklch(0.6 0.16 320)', weight: 1 },
-  feels: { id: 'feels', label: 'FEELS', glyph: '🥹', color: 'oklch(0.6 0.16 10)', weight: 1 },
-  wtf: { id: 'wtf', label: 'BANG', glyph: '💥', color: 'oklch(0.6 0.13 95)', weight: 1 },
-  chills: {
-    id: 'chills',
-    label: 'CHILLS',
-    glyph: '🧊',
-    color: 'oklch(0.58 0.12 230)',
-    weight: 3,
-    scarce: true,
-  },
+  like: { id: 'like', label: 'like', hue: 345, color: '#ff3d7f', weight: 1 },
+  hype: { id: 'hype', label: 'hype', hue: 45, color: '#ffd23f', weight: 5, scarce: true },
 };
 
-export const REACTION_ORDER: ReactionType[] = ['drop', 'groove', 'feels', 'wtf', 'chills'];
+export const REACTION_ORDER: ReactionType[] = ['like', 'hype'];
 
 export const LANES = ['Anything goes', 'Electronic', 'Indie / Alt', 'Hip-hop'];
 
-// Hero word cycle (design).
+// the wordmark suffix cycle: nero.party, nero.listen, nero.dance…
 export const CYCLE_WORDS = [
   'party',
   'listen',
@@ -46,47 +39,6 @@ export const CYCLE_WORDS = [
   'queue',
   'crown',
 ];
-
-// seeded PRNG, matches the backend so the client regenerates the same
-// waveform the server reasoned about.
-export function mulberry32(seed: number): () => number {
-  let a = seed >>> 0;
-  return function () {
-    a |= 0;
-    a = (a + 0x6d2b79f5) | 0;
-    let t = Math.imul(a ^ (a >>> 15), 1 | a);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-
-export function seedFromId(id: string): number {
-  let h = 2166136261;
-  for (let i = 0; i < id.length; i++) {
-    h ^= id.charCodeAt(i);
-    h = Math.imul(h, 16777619);
-  }
-  return h >>> 0;
-}
-
-// Regenerate the waveform bars from (trackId, peaks) - must match the server.
-export function waveform(trackId: string, peaks: Peak[], n = 110): number[] {
-  const rnd = mulberry32(seedFromId(trackId) + 7919);
-  const bars: number[] = [];
-  let prev = 0.4;
-  for (let i = 0; i < n; i++) {
-    const f = i / (n - 1);
-    let peakBoost = 0;
-    for (const p of peaks) {
-      const d = Math.abs(f - p.c) / p.w;
-      peakBoost = Math.max(peakBoost, Math.exp(-d * d) * 0.55);
-    }
-    const target = 0.22 + rnd() * 0.38 + peakBoost;
-    prev = prev * 0.55 + target * 0.45;
-    bars.push(Math.min(1, prev * (0.85 + rnd() * 0.3)));
-  }
-  return bars;
-}
 
 export function fmtTime(sec: number): string {
   sec = Math.max(0, Math.round(sec));

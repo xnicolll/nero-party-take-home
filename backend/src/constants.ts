@@ -3,34 +3,25 @@
 // kept in sync with the frontend so client + server agree.
 // ============================================================
 
-export type ReactionType = 'drop' | 'groove' | 'feels' | 'wtf' | 'chills';
+// v3: a single binary "like" plus the scarce "hype" (the greatest signal a guest
+// can give, capped per party). Intensity comes from many likes landing together
+// (a sync), not from distinct emotion types. The client draws the marks
+// (ink heart / thumbs-down), so the defs carry no glyph or colour anymore.
+export type ReactionType = 'like' | 'hype';
 
 export interface ReactionDef {
   id: ReactionType;
   label: string;
-  glyph: string;
-  color: string;
   weight: number;
   scarce?: boolean;
 }
 
-// the five reactions: emoji glyph + OKLCH color + heat weight.
 export const REACTIONS: Record<ReactionType, ReactionDef> = {
-  drop: { id: 'drop', label: 'DROP', glyph: '🫳', color: 'oklch(0.6 0.16 45)', weight: 1 },
-  groove: { id: 'groove', label: 'GROOVE', glyph: '🎶', color: 'oklch(0.6 0.16 320)', weight: 1 },
-  feels: { id: 'feels', label: 'FEELS', glyph: '🥹', color: 'oklch(0.6 0.16 10)', weight: 1 },
-  wtf: { id: 'wtf', label: 'BANG', glyph: '💥', color: 'oklch(0.6 0.13 95)', weight: 1 },
-  chills: {
-    id: 'chills',
-    label: 'CHILLS',
-    glyph: '🧊',
-    color: 'oklch(0.58 0.12 230)',
-    weight: 3,
-    scarce: true,
-  },
+  like: { id: 'like', label: 'like', weight: 1 },
+  hype: { id: 'hype', label: 'hype', weight: 5, scarce: true },
 };
 
-export const REACTION_ORDER: ReactionType[] = ['drop', 'groove', 'feels', 'wtf', 'chills'];
+export const REACTION_ORDER: ReactionType[] = ['like', 'hype'];
 
 export function isReactionType(x: unknown): x is ReactionType {
   return typeof x === 'string' && x in REACTIONS;

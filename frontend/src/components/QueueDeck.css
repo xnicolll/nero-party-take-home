@@ -1,0 +1,243 @@
+/* ============================================================
+   QueueDeck - the upcoming queue as a receding fan of covers that
+   hugs the now-playing art and pushes back behind it. The next song
+   is the largest, frontmost card at the art's right edge; each one
+   after recedes (smaller, tucked behind, peeking a slice). Borders
+   are painted in the page's neon so overlapping covers read apart.
+   ============================================================ */
+
+.sp-deck {
+  --deck-card: clamp(120px, 14vw, 196px); /* the front (next) card edge */
+  --deck-recede: 0.13; /* each card this much smaller than the one before */
+  --deck-overlap: 0.66; /* fraction of a card hidden behind the previous */
+
+  position: relative;
+  z-index: 1; /* sits behind the now-playing art, which is z-raised */
+  /* the art's height, so cards centre on the art's midline (the stage top-aligns) */
+  height: var(--sp-now-size, 300px);
+  display: flex;
+  align-items: center; /* cards recede symmetrically around the centre line */
+  justify-content: flex-start; /* hug the art */
+  /* pull the front card further under the art's right edge so it reads
+     as peeking behind the hero, not sitting beside it */
+  margin-left: calc(-1 * var(--sp-s8));
+  padding: var(--sp-s5) 0;
+  overflow: visible;
+}
+
+.sp-deck-fan {
+  display: flex;
+  align-items: center;
+}
+
+/* one cover. width/height shrink by index so the layout itself recedes;
+   negative margin slides each behind the one before. */
+.sp-deck-card {
+  --scale: calc(1 - var(--i) * var(--deck-recede));
+  position: relative;
+  flex: none;
+  width: calc(var(--deck-card) * var(--scale));
+  height: calc(var(--deck-card) * var(--scale));
+  margin-left: calc(var(--deck-card) * var(--scale) * var(--deck-overlap) * -1);
+  padding: 0;
+  border: none;
+  background: transparent;
+  text-align: left;
+  color: var(--sp-on-neon);
+  animation: spDeckDeal 0.55s var(--sp-ease-out) backwards;
+  transition: transform 480ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.sp-deck-card:first-child {
+  margin-left: 0;
+}
+.sp-deck-card.hostable {
+  cursor: pointer;
+}
+
+/* the art - neon border (the page colour) so overlaps separate cleanly */
+.sp-deck-cover {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 3px solid var(--sp-neon);
+  background: var(--sp-card);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.26);
+}
+.sp-deck-cover img,
+.sp-deck-blank {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.sp-deck-blank {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(28, 24, 19, 0.5);
+}
+
+/* dealt-in stagger as the deck mounts */
+@keyframes spDeckDeal {
+  from {
+    opacity: 0;
+    transform: translateX(26px);
+  }
+}
+.sp-deck-card:nth-child(1) { animation-delay: 0ms; }
+.sp-deck-card:nth-child(2) { animation-delay: 60ms; }
+.sp-deck-card:nth-child(3) { animation-delay: 120ms; }
+.sp-deck-card:nth-child(4) { animation-delay: 180ms; }
+.sp-deck-card:nth-child(5) { animation-delay: 240ms; }
+
+/* the name plate - hidden until a card is brought forward */
+.sp-deck-meta {
+  position: absolute;
+  left: 8px;
+  bottom: 8px;
+  right: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 6px 9px;
+  border-radius: 11px;
+  background: var(--sp-card);
+  border: 1px solid var(--sp-ink);
+  box-shadow: 0 2px 0 rgba(28, 24, 19, 0.18);
+  color: var(--sp-ink);
+  opacity: 0;
+  transform: translateY(4px);
+  pointer-events: none;
+  transition:
+    opacity var(--sp-dur-1) var(--sp-ease-out),
+    transform var(--sp-dur-2) var(--sp-ease-spring);
+}
+
+/* the teal remove control - appears when a card is forward, top-right */
+.sp-deck-x {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 1.5px solid var(--sp-cool);
+  background: var(--sp-card);
+  color: var(--sp-cool);
+  cursor: pointer;
+  opacity: 0;
+  transform: scale(0.7);
+  transition:
+    opacity var(--sp-dur-1) var(--sp-ease-out),
+    transform var(--sp-dur-2) var(--sp-ease-spring),
+    background var(--sp-dur-1) var(--sp-ease-out),
+    color var(--sp-dur-1) var(--sp-ease-out);
+}
+.sp-deck-x:hover {
+  background: var(--sp-cool);
+  color: var(--sp-on-neon);
+}
+
+/* the +N tail - a small cream chip riding the back of the deck */
+.sp-deck-more {
+  flex: none;
+  align-self: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: calc(var(--deck-card) * 0.3);
+  height: calc(var(--deck-card) * 0.42);
+  margin-left: calc(var(--deck-card) * 0.18 * -1);
+  border-radius: 12px;
+  border: 2px solid var(--sp-neon);
+  background: var(--sp-card);
+  font-size: var(--sp-text-sm);
+  font-weight: 800;
+  color: var(--sp-ink);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.22);
+  animation: spDeckDeal 0.55s var(--sp-ease-out) 0.3s backwards;
+}
+
+/* bring a card forward on hover + shove its neighbours out of the way.
+   Scale is capped at 1.25x natural size so small back cards don't blow
+   up to front-card dimensions. Text stays proportional. */
+@media (hover: hover) and (pointer: fine) {
+  .sp-deck-card:hover,
+  .sp-deck-card:focus-visible,
+  .sp-deck-card:focus-within {
+    /* expand but cap: never more than 25% bigger than the card's natural size */
+    transform: scale(1.22);
+    z-index: 60 !important;
+  }
+  /* the first card is tucked under the art; shift it right on hover so the
+     full cover is visible, not just the peeking portion */
+  .sp-deck-card:first-child:hover,
+  .sp-deck-card:first-child:focus-visible,
+  .sp-deck-card:first-child:focus-within {
+    transform: scale(1.22) translateX(26px);
+  }
+  /* the direct next card slides further right so the user can fully see it */
+  .sp-deck-card:hover + .sp-deck-card,
+  .sp-deck-card:focus-within + .sp-deck-card {
+    transform: translateX(72px);
+  }
+  /* cards further back get a lighter push */
+  .sp-deck-card:hover + .sp-deck-card ~ .sp-deck-card,
+  .sp-deck-card:focus-within + .sp-deck-card ~ .sp-deck-card {
+    transform: translateX(40px);
+  }
+  /* cards before the hovered one slide left */
+  .sp-deck-card:has(~ .sp-deck-card:hover),
+  .sp-deck-card:has(~ .sp-deck-card:focus-within) {
+    transform: translateX(-40px);
+  }
+  .sp-deck-card:hover .sp-deck-cover,
+  .sp-deck-card:focus-within .sp-deck-cover {
+    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.34);
+  }
+  .sp-deck-card:hover .sp-deck-meta,
+  .sp-deck-card:focus-within .sp-deck-meta {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  .sp-deck-card:hover .sp-deck-x,
+  .sp-deck-card:focus-within .sp-deck-x {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* normalise meta text size across all card sizes: the meta carries a fixed
+   font-size so the rendered text looks the same regardless of card scale */
+.sp-deck-meta b {
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sp-deck-meta i {
+  font-size: 9.5px;
+  font-style: normal;
+  color: var(--sp-ink-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sp-deck-card,
+  .sp-deck-meta,
+  .sp-deck-x,
+  .sp-deck-cover,
+  .sp-deck-more {
+    animation: none;
+    transition-duration: 1ms;
+  }
+}

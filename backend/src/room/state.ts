@@ -25,6 +25,7 @@ export interface SongRuntime {
   heat: number;
   score: number;
   buckets: number[];
+  bucketsByType: Record<ReactionType, number[]>; // per-hue timeline for the heat ribbons
   counts: Partial<Record<ReactionType, number>>;
   syncs: number;
   pins: { frac: number; type: ReactionType; participantId: string; t: number }[];

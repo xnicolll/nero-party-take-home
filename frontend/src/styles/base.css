@@ -1,0 +1,79 @@
+/* ============================================================
+   FRESH PAINT base - warm paper with a whisper of grain
+   ============================================================ */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  height: 100%;
+  background: var(--sp-bg);
+}
+
+body {
+  margin: 0;
+  height: 100%;
+  /* every screen is built to fit one viewport; never scroll the page itself */
+  overflow: hidden;
+  background: var(--sp-bg);
+  color: var(--sp-ink);
+  font-family: var(--sp-font-text);
+  font-size: var(--sp-text-base);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* offscreen defs (the paper-note edge filter) must never take layout space */
+.sp-filters {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/* the one texture: static print grain over everything */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  pointer-events: none;
+  opacity: 0.05;
+  mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)' opacity='0.55'/%3E%3C/svg%3E");
+}
+
+:focus-visible {
+  outline: 2px solid var(--sp-ink);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+::selection {
+  background: rgba(255, 77, 0, 0.28);
+}
+
+.screen {
+  position: relative;
+  z-index: 1;
+  animation: spScreen 0.45s var(--sp-ease-out);
+}
+@keyframes spScreen {
+  from {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

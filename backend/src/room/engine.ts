@@ -14,6 +14,7 @@ import {
   MAX_BOTS,
   POSITION_BROADCAST_MS,
   REACTIONS,
+  REACTION_ORDER,
   ROOM_TTL_MS,
   SYNC_WINDOW_MS,
   TICK_MS,
@@ -78,6 +79,9 @@ export function makeRuntimeSong(row: {
     heat: 0,
     score: 0,
     buckets: Array(BUCKETS).fill(0),
+    bucketsByType: Object.fromEntries(
+      REACTION_ORDER.map((t) => [t, Array(BUCKETS).fill(0)]),
+    ) as Record<ReactionType, number[]>,
     counts: {},
     syncs: 0,
     pins: [],
@@ -194,7 +198,8 @@ async function spawnBot(
   room: Room,
   bot: { id: string | null; name: string; color: string; spawned: boolean },
 ): Promise<void> {
-  if (bot.spawned || room.phase !== 'lobby') return;
+  // instant parties skip the lobby, so bots drop in mid-song too
+  if (bot.spawned || (room.phase !== 'lobby' && room.phase !== 'party')) return;
   bot.spawned = true;
   const chills = room.chillsBudget + (room.chillsBudget > 3 ? 1 : 0);
   const row = await prisma.participant.create({
@@ -220,6 +225,25 @@ async function spawnBot(
       connected: true,
     },
   });
+  // a bot that lands mid-song warms up on it: slot 1-2 reactions into what's
+  // left of the schedule (kept sorted; the tick loop fires them naturally)
+  if (room.phase === 'party' && room.schedule) {
+    const rnd = mulberry32(room.idx * 977 + row.id.length * 131 + room.schedule.length);
+    const remaining = 1 - room.frac;
+    if (remaining > 0.15) {
+      const count = remaining > 0.45 ? 2 : 1;
+      for (let k = 0; k < count; k++) {
+        const e = {
+          t: Math.min(0.98, room.frac + 0.08 + rnd() * (remaining - 0.1)),
+          participantId: row.id,
+          type: 'like' as ReactionType,
+        };
+        let i = room.cursor;
+        while (i < room.schedule.length && room.schedule[i].t <= e.t) i++;
+        room.schedule.splice(i, 0, e);
+      }
+    }
+  }
 }
 
 // ---- the shared reaction path (humans + bots) ------------------
@@ -257,8 +281,6 @@ function doReaction(
     type,
     frac,
     weight: def.weight,
-    color: def.color,
-    glyph: def.glyph,
     isBot,
   });
   if (res.sync) emitRoom(room, 'syncBurst', { songId: song.id, frac, serverTime: now });
@@ -271,7 +293,9 @@ export function humanReact(room: Room, participantId: string, type: ReactionType
   if (!song) return;
   const p = room.participants.get(participantId);
   if (!p) return;
-  if (type === 'chills') {
+  if (type === 'hype') {
+    // chillsLeft is the scarce-budget field (kept as-is to avoid a DB migration);
+    // it now powers hype, the greatest signal, capped per party.
     if (p.chillsLeft <= 0) return;
     p.chillsLeft -= 1;
     prisma.participant
@@ -358,6 +382,14 @@ function advanceAfter(room: Room): void {
     song.played = true;
     prisma.queuedSong.update({ where: { id: song.id }, data: { played: true } }).catch(() => {});
   }
+  // every 5 songs played, quietly expand the queue cap by 5 so the party never
+  // runs out of room (starts at 20, grows to 25, 30, etc.)
+  const playedCount = room.songs.filter((s) => s.played).length;
+  if (playedCount > 0 && playedCount % 5 === 0) {
+    room.maxSongs += 5;
+    prisma.party.update({ where: { id: room.partyId }, data: { maxSongs: room.maxSongs } }).catch(() => {});
+    emitRoom(room, 'queueCapUpdate', { maxSongs: room.maxSongs });
+  }
   if (room.idx + 1 < room.songs.length) {
     room.idx += 1;
     startSong(room);
@@ -421,6 +453,20 @@ export function setDislike(room: Room, participantId: string, on: boolean): void
   emitRoom(room, 'dislikeUpdate', { count: room.dislikes.size, total: voterCount(room) });
   if (on && !p.isBot) rallyBots(room); // a human dislike rallies the room
   checkDislikeSkip(room);
+}
+
+// A participant renames themselves: trim, clamp to 1-24 chars, ignore empty,
+// then broadcast the new name to the whole room (incl. the caller).
+export function renameParticipant(room: Room, participantId: string, name: unknown): void {
+  const p = room.participants.get(participantId);
+  if (!p) return;
+  const next = String(name ?? '')
+    .trim()
+    .slice(0, 24);
+  if (!next || next === p.name) return;
+  p.name = next;
+  prisma.participant.update({ where: { id: p.id }, data: { name: next } }).catch(() => {});
+  emitRoom(room, 'participantRenamed', { participantId: p.id, name: next });
 }
 
 function rallyBots(room: Room): void {
@@ -539,10 +585,14 @@ export function removeSong(room: Room, songId: string): { ok: boolean; reason?: 
   return { ok: true };
 }
 
-export async function startParty(room: Room): Promise<{ ok: boolean; reason?: string }> {
+export async function startParty(
+  room: Room,
+  opts?: { allowSolo?: boolean },
+): Promise<{ ok: boolean; reason?: string }> {
   if (room.phase !== 'lobby') return { ok: false, reason: 'Already started' };
   const guests = [...room.participants.values()].filter((p) => !p.isHost).length;
-  if (guests < 2) return { ok: false, reason: 'Need 2+ guests' };
+  // instant parties start the second the host picks a song - bots trickle in after
+  if (!opts?.allowSolo && guests < 2) return { ok: false, reason: 'Need 2+ guests' };
   // everyone adds their own songs now - no auto-seeding
   if (room.songs.length === 0) return { ok: false, reason: 'Add a song to start' };
 
@@ -585,6 +635,28 @@ export function hostResume(room: Room): void {
 
 export function hostSkip(room: Room): void {
   skipCurrent(room, 'skipped by the host', true);
+}
+
+// Host taps a queued song: it plays right now. The current song is marked
+// played, the chosen one slots in next, and the rest of the queue keeps
+// its order.
+export function playNow(room: Room, songId: string): void {
+  if (room.phase !== 'party' || room.skipping) return;
+  const targetIdx = room.songs.findIndex((s) => s.id === songId);
+  if (targetIdx < 0 || targetIdx === room.idx) return;
+  const target = room.songs[targetIdx];
+  if (target.played) return;
+  const cur = currentSong(room);
+  if (cur) {
+    cur.played = true;
+    prisma.queuedSong.update({ where: { id: cur.id }, data: { played: true } }).catch(() => {});
+  }
+  room.songs.splice(targetIdx, 1);
+  room.songs.splice(room.idx + 1, 0, target);
+  room.songs.forEach((s, i) => (s.position = i));
+  room.idx += 1;
+  startSong(room);
+  emitQueue(room);
 }
 
 export function hostEnd(room: Room): void {

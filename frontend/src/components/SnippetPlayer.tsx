@@ -2,8 +2,7 @@
 // NERO PARTY - snippet preview card (rendered inside a <Modal>)
 // Plays ~12s from a representative point (or a given start), eager artwork.
 // ============================================================
-import { useEffect, useRef, useState } from 'react';
-import { fmtTime } from '../lib/nero';
+import { useEffect, useRef } from 'react';
 import { AlbumArt } from './atoms';
 
 export interface SnippetTrack {
@@ -18,12 +17,6 @@ export interface SnippetTrack {
 
 export function SnippetPlayer({ track, onDone }: { track: SnippetTrack; onDone: () => void }) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const [left, setLeft] = useState(12);
-
-  useEffect(() => {
-    const id = setInterval(() => setLeft((l) => Math.max(0, l - 1)), 1000);
-    return () => clearInterval(id);
-  }, []);
 
   useEffect(() => {
     const a = new Audio();
@@ -64,20 +57,16 @@ export function SnippetPlayer({ track, onDone }: { track: SnippetTrack; onDone: 
   }, [track, onDone]);
 
   return (
-    <div className="snippet glass">
-      <AlbumArt artworkUrl={track.artworkUrl} hue={track.hue} size={140} radius={16} priority />
-      <div>
-        <div className="snippet-title">{track.title}</div>
-        <div className="mono" style={{ color: 'var(--ink-dim)', fontSize: 12, marginTop: 2 }}>
-          {track.artist} · {fmtTime(track.durationSec)}
-        </div>
+    <div className="sp-snippet">
+      <AlbumArt artworkUrl={track.artworkUrl} hue={track.hue} size={132} radius={14} priority />
+      <div className="sp-snippet-meta">
+        <b>{track.title}</b>
+        <span>{track.artist}</span>
       </div>
-      <div className="snippet-bar">
+      <div className="sp-snippet-bar" aria-hidden>
         <span />
       </div>
-      <div className="mono" style={{ fontSize: 10, color: 'var(--ink-faint)' }}>
-        <b style={{ color: 'var(--accent)' }}>{left}s</b> left · tap anywhere to close
-      </div>
+      <span className="sp-hint">tap anywhere to close</span>
     </div>
   );
 }
