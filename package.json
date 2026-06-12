@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev": "npm run kill; concurrently \"npm run dev:backend\" \"npm run dev:frontend\"; npm run kill",
     "dev:backend": "cd backend && npm run dev",
     "dev:frontend": "cd frontend && npm run dev",
     "install": "cd backend && npm install && cd ../frontend && npm install",

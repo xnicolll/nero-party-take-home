@@ -8,6 +8,8 @@
 // ============================================================
 import { useEffect, useRef, useState } from 'react';
 import { prefersReducedMotion } from '../lib/motion';
+import { arrowPath } from '../lib/ink';
+import { InkStroke } from './ink';
 import { Mark } from './marks';
 import './Flood.css';
 
@@ -181,6 +183,40 @@ export function Flood({
       .catch(finish);
   };
 
+  // name-field hint arrow: draws in after the caption settles, auto-dismisses
+  const [nameHint, setNameHint] = useState(true);
+  const [nameHintClosing, setNameHintClosing] = useState(false);
+  const [hintArrow, setHintArrow] = useState<{
+    lx: number;
+    ly: number;
+    tx: number;
+    ty: number;
+  } | null>(null);
+
+  useEffect(() => {
+    const t = setTimeout(() => {
+      const input = document.querySelector('.sp-flood-name-input');
+      if (!input) return;
+      const r = input.getBoundingClientRect();
+      setHintArrow({
+        lx: Math.max(20, r.left - 180),
+        ly: Math.max(20, r.top - 58),
+        tx: r.left + r.width / 2,
+        ty: r.top - 2,
+      });
+    }, reduced ? 200 : 1400);
+    return () => clearTimeout(t);
+  }, [reduced]);
+
+  useEffect(() => {
+    if (!nameHint || !hintArrow) return;
+    const t = setTimeout(() => {
+      setNameHintClosing(true);
+      setTimeout(() => setNameHint(false), 420);
+    }, 3000);
+    return () => clearTimeout(t);
+  }, [nameHint, hintArrow]);
+
   // the one action: copy the invite link, then move the cover left + start
   const onStart = () => {
     if (startedRef.current) return;
@@ -238,6 +274,39 @@ export function Flood({
           <Mark name={copied ? 'check' : 'skip'} size={13} strokeWidth={2.6} />
         </button>
       </div>
+
+      {nameHint && hintArrow && (
+        <div className={'sp-flood-arrow' + (nameHintClosing ? ' closing' : '')}>
+          <svg
+            style={{
+              position: 'fixed',
+              inset: 0,
+              width: '100%',
+              height: '100%',
+              overflow: 'visible',
+              pointerEvents: 'none',
+            }}
+            aria-hidden
+          >
+            <InkStroke
+              d={arrowPath(hintArrow.lx + 120, hintArrow.ly + 12, hintArrow.tx, hintArrow.ty, 9)}
+              width={2.6}
+              color="var(--sp-card)"
+              draw
+              duration={650}
+              delay={200}
+              erase={nameHintClosing}
+              eraseDuration={280}
+            />
+          </svg>
+          <span
+            className="sp-flood-arrow-chip"
+            style={{ left: hintArrow.lx, top: hintArrow.ly }}
+          >
+            enter your name here!
+          </span>
+        </div>
+      )}
     </div>
   );
 }

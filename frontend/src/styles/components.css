@@ -245,6 +245,51 @@
   text-overflow: ellipsis;
 }
 
+/* suggested songs in the search modal */
+.sp-search-suggest {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-s2);
+  padding: var(--sp-s2) 0;
+}
+.sp-search-suggest-row {
+  display: flex;
+  gap: var(--sp-s3);
+}
+.sp-search-suggest-item {
+  appearance: none;
+  background: transparent;
+  border: none;
+  padding: 0;
+  width: 64px;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  cursor: pointer;
+  transition: transform 0.3s var(--sp-ease-spring);
+}
+.sp-search-suggest-item b {
+  font-weight: 600;
+  font-size: 10px;
+  color: var(--sp-ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  text-align: left;
+}
+.sp-search-suggest-item:hover:not(:disabled) {
+  transform: translateY(-3px);
+}
+.sp-search-suggest-item:active:not(:disabled) {
+  transform: scale(0.93);
+}
+.sp-search-suggest-item:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
 /* snippet preview */
 .sp-snippet {
   position: relative;

@@ -1,0 +1,333 @@
+/* ============================================================
+   ORBIT ARENA - the cosmic party stage
+   Songs orbit a central sun (square art). Territory zones flank
+   left and right with bobbing faces that animate on reactions.
+   Hype triggers a full-screen yellow strobe.
+   ============================================================ */
+
+.sp-orbit {
+  position: relative;
+  width: 620px;
+  height: 560px;
+  margin: 0 auto;
+  flex-shrink: 0;
+  overflow: visible;
+}
+
+.sp-orbit-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  overflow: visible;
+}
+
+/* --- hype strobe: full-screen yellow flash + flicker --- */
+.sp-orbit-hype-strobe {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  pointer-events: none;
+  background: rgba(255, 220, 40, 0.3);
+  animation: spHypeStrobe 2s ease-out forwards;
+}
+@keyframes spHypeStrobe {
+  0% { opacity: 1; background: rgba(255, 230, 50, 0.45); }
+  8% { opacity: 0.2; }
+  14% { opacity: 0.9; background: rgba(255, 240, 80, 0.35); }
+  22% { opacity: 0.15; }
+  30% { opacity: 0.7; background: rgba(255, 220, 40, 0.28); }
+  40% { opacity: 0.1; }
+  50% { opacity: 0.5; background: rgba(255, 210, 30, 0.2); }
+  62% { opacity: 0.08; }
+  72% { opacity: 0.3; }
+  85% { opacity: 0.05; }
+  100% { opacity: 0; }
+}
+
+/* --- territory zones: big paint blobs flanking the orbit --- */
+.sp-orbit-zone {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 0;
+  animation: spZoneBob 4s ease-in-out infinite;
+  transition:
+    width 0.4s var(--sp-ease-out),
+    height 0.4s var(--sp-ease-out);
+}
+
+.sp-orbit-zone-blob {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.sp-orbit-zone-face {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  filter: drop-shadow(0 2px 3px rgba(28, 24, 19, 0.22));
+}
+
+.sp-orbit-zone-name {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--sp-ink);
+  opacity: 0.7;
+  white-space: nowrap;
+}
+
+@keyframes spZoneBob {
+  0%, 100% {
+    transform: translate(-50%, -50%) rotate(-2.5deg);
+  }
+  33% {
+    transform: translate(-50%, -50%) translateY(-10px) rotate(2.5deg);
+  }
+  66% {
+    transform: translate(-50%, -50%) translateY(6px) rotate(-1.5deg);
+  }
+}
+
+/* --- ripple from reactions --- */
+.sp-orbit-ripple {
+  fill: none;
+  stroke: var(--sp-ink);
+  stroke-width: 2;
+  transform-origin: 310px 246px;
+  animation: spOrbitRipple 850ms ease-out forwards;
+  pointer-events: none;
+}
+@keyframes spOrbitRipple {
+  from {
+    transform: scale(1);
+    opacity: 0.4;
+    stroke-width: 2.5;
+  }
+  to {
+    transform: scale(2.8);
+    opacity: 0;
+    stroke-width: 0.3;
+  }
+}
+
+/* --- sun: now-playing at center (square art with rounded corners) --- */
+.sp-orbit-sun {
+  position: absolute;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 5px;
+  z-index: 3;
+}
+
+.sp-orbit-sun-art {
+  border-radius: 18px;
+  box-shadow:
+    0 0 0 4px var(--sp-card),
+    0 0 0 6.5px var(--sp-ink),
+    0 22px 50px rgba(0, 0, 0, 0.35);
+  overflow: hidden;
+  animation:
+    spOrbitPop 0.85s var(--sp-ease-out) 0.1s both,
+    spBreath 3.4s var(--sp-ease-inout) 1.1s infinite;
+}
+.sp-orbit-sun-art .sp-art {
+  border: none;
+}
+
+@keyframes spOrbitPop {
+  from {
+    transform: scale(0.45);
+    opacity: 0;
+  }
+  55% {
+    opacity: 1;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.sp-orbit-title {
+  margin: var(--sp-s2) 0 0;
+  font-family: var(--sp-font-display);
+  font-weight: 600;
+  font-size: clamp(1.3rem, 2vw, 1.8rem);
+  line-height: 1.06;
+  letter-spacing: -0.02em;
+  max-width: 16ch;
+}
+
+.sp-orbit-artist {
+  margin: 0;
+  color: rgba(28, 24, 19, 0.72);
+  font-weight: 500;
+  font-size: var(--sp-text-sm);
+}
+
+.sp-orbit-by {
+  margin: 0;
+  color: rgba(28, 24, 19, 0.6);
+  font-size: var(--sp-text-xs);
+  font-weight: 500;
+}
+
+.sp-orbit-controls {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-s2);
+  margin-top: var(--sp-s1);
+}
+
+/* --- orbiting planets (circular) --- */
+.sp-orbit-planet {
+  position: absolute;
+  left: 50%;
+  transform: translate(-50%, -50%) translate(var(--ox), var(--oy));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  z-index: 2;
+  animation: spOrbitPlanetIn 0.55s var(--sp-ease-spring) backwards;
+  transition: transform 0.65s var(--sp-ease-out);
+}
+.sp-orbit-planet.hostable {
+  cursor: pointer;
+}
+
+@keyframes spOrbitPlanetIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -50%) translate(var(--ox), var(--oy)) scale(0.2);
+  }
+}
+
+.sp-orbit-planet-art {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 2.5px solid var(--sp-ink);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.24);
+  background: var(--sp-card);
+  transition:
+    transform 0.3s var(--sp-ease-spring),
+    box-shadow 0.2s ease;
+}
+.sp-orbit-planet-art img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.sp-orbit-planet-blank {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  color: rgba(28, 24, 19, 0.5);
+}
+
+.sp-orbit-planet-label {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--sp-ink);
+  background: var(--sp-card);
+  border: 1px solid var(--sp-line);
+  border-radius: 7px;
+  padding: 2px 8px;
+  white-space: nowrap;
+  max-width: 100px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--sp-dur-2) ease;
+}
+
+.sp-orbit-planet-x {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 1.5px solid var(--sp-cool);
+  background: var(--sp-card);
+  color: var(--sp-cool);
+  cursor: pointer;
+  padding: 0;
+  opacity: 0;
+  transform: scale(0.7);
+  transition:
+    opacity var(--sp-dur-1) var(--sp-ease-out),
+    transform var(--sp-dur-2) var(--sp-ease-spring),
+    background var(--sp-dur-1) ease,
+    color var(--sp-dur-1) ease;
+}
+.sp-orbit-planet-x:hover {
+  background: var(--sp-cool);
+  color: var(--sp-on-neon);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .sp-orbit-planet:hover .sp-orbit-planet-art {
+    transform: scale(1.2);
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.32);
+  }
+  .sp-orbit-planet:hover .sp-orbit-planet-label {
+    opacity: 1;
+  }
+  .sp-orbit-planet:hover .sp-orbit-planet-x {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* --- overflow indicator --- */
+.sp-orbit-overflow {
+  position: absolute;
+  left: 50%;
+  bottom: 8px;
+  transform: translateX(-50%);
+  font-size: var(--sp-text-xs);
+  font-weight: 700;
+  color: var(--sp-ink);
+  opacity: 0.5;
+  letter-spacing: 0.02em;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sp-orbit-sun-art,
+  .sp-orbit-planet,
+  .sp-orbit-ripple,
+  .sp-orbit-zone,
+  .sp-orbit-hype-strobe {
+    animation: none;
+    transition-duration: 1ms;
+  }
+}

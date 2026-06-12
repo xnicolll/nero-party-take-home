@@ -14,13 +14,15 @@ export function SongSearch({
   onPreview,
   full,
   queuedIds,
+  suggestions,
 }: {
   search: (q: string) => Promise<Track[]>;
   add: (t: Track) => Promise<{ ok: boolean; reason?: string }>;
   onUnqueue?: (trackId: string) => void;
   onPreview?: (t: Track) => void;
-  full?: boolean; // queue is full
+  full?: boolean;
   queuedIds: Set<string>;
+  suggestions?: Track[];
 }) {
   const [q, setQ] = useState('');
   const [results, setResults] = useState<Track[]>([]);
@@ -76,6 +78,28 @@ export function SongSearch({
         spellCheck={false}
         autoFocus
       />
+      {!q.trim() && suggestions && suggestions.length > 0 && (
+        <div className="sp-search-suggest">
+          <span className="sp-label">suggested</span>
+          <div className="sp-search-suggest-row">
+            {suggestions
+              .filter((t) => !queuedIds.has(t.id) && !added.has(t.id))
+              .slice(0, 5)
+              .map((t) => (
+                <button
+                  key={t.id}
+                  className="sp-search-suggest-item"
+                  disabled={!!full || adding === t.id}
+                  onClick={() => onAdd(t)}
+                  title={`${t.title} - ${t.artist}`}
+                >
+                  <AlbumArt artworkUrl={t.artworkUrl} hue={t.hue} size={64} radius={10} />
+                  <b>{t.title}</b>
+                </button>
+              ))}
+          </div>
+        </div>
+      )}
       <div className="sp-search-results">
         {loading && <div className="sp-hint">searching…</div>}
         {!loading && q.trim() && results.length === 0 && (

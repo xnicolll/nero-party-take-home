@@ -162,6 +162,44 @@ export function blobPath(cx: number, cy: number, r: number, seed = 9): string {
   return smoothPath(pts) + 'Z';
 }
 
+// a wobbly closed circle for orbit rings
+export function wobbleCirclePath(cx: number, cy: number, r: number, seed = 13): string {
+  const rnd = prng(seed);
+  const n = 20;
+  const pts: Pt[] = [];
+  for (let i = 0; i <= n; i++) {
+    const a = (i / n) * Math.PI * 2;
+    const rad = r * (0.97 + rnd() * 0.06);
+    pts.push([cx + Math.cos(a) * rad, cy + Math.sin(a) * rad]);
+  }
+  return smoothPath(pts) + 'Z';
+}
+
+// a single wobbly ink ray from center outward at a given angle
+export function rayLine(
+  cx: number,
+  cy: number,
+  angle: number,
+  r0: number,
+  r1: number,
+  seed = 7,
+): string {
+  const rnd = prng(seed);
+  const steps = 5;
+  const pts: Pt[] = [];
+  for (let i = 0; i <= steps; i++) {
+    const t = i / steps;
+    const r = r0 + (r1 - r0) * t;
+    const wobble = i === 0 || i === steps ? (rnd() - 0.5) * 1.2 : (rnd() - 0.5) * 3.5;
+    const pa = angle + Math.PI / 2;
+    pts.push([
+      cx + Math.cos(angle) * r + Math.cos(pa) * wobble,
+      cy + Math.sin(angle) * r + Math.sin(pa) * wobble,
+    ]);
+  }
+  return smoothPath(pts);
+}
+
 // stable seed from a name, so a guest's doodle never changes shape
 export function seedFromName(name: string): number {
   let h = 2166136261;

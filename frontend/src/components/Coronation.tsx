@@ -147,18 +147,27 @@ export function Coronation({
           </button>
         )}
 
-        <div className="sp-stamps sp-in" style={{ animationDelay: '0.85s' }}>
-          {results.superlatives.map((s, i) => (
-            <div
-              key={s.key}
-              className="sp-stampcard"
-              style={{ transform: `rotate(${(((i * 7) % 5) - 2) * 0.9}deg)` }}
-            >
-              <span className="sp-stampcard-key">{s.key.toLowerCase()}</span>
-              <b>{s.songTitle}</b>
-            </div>
-          ))}
-        </div>
+        {results.ranked.length > 0 && (
+          <div className="sp-end-board sp-in" style={{ animationDelay: '0.85s' }}>
+            <span className="sp-label">leaderboard</span>
+            <ol className="sp-end-board-list">
+              {results.ranked.slice(0, 3).map((s, i) => (
+                <li key={s.id} className="sp-end-board-row">
+                  <span className="sp-end-board-rank">{i + 1}</span>
+                  <AlbumArt artworkUrl={s.artworkUrl} hue={s.hue} size={28} radius={7} />
+                  <div className="sp-end-board-meta">
+                    <b>{s.title}</b>
+                    <i>{s.artist}</i>
+                  </div>
+                  <span className="sp-end-board-score">
+                    <Mark name="like" size={12} />
+                    {Math.round(s.score)}
+                  </span>
+                </li>
+              ))}
+            </ol>
+          </div>
+        )}
 
         <div className="sp-actions sp-end-actions sp-in" style={{ animationDelay: '0.95s' }}>
           <button className="sp-btn sp-btn-solid" onClick={onRestart}>

@@ -729,18 +729,14 @@
   overflow: visible;
 }
 
-/* the stage: leaderboard left, now-playing center, nestled queue right */
+/* the stage: orbit arena centered */
 .sp-stage {
-  --sp-now-size: 300px; /* the now-playing art edge; the rails align to it */
   flex: 1;
   min-height: 0;
-  display: grid;
-  grid-template-columns: 1fr minmax(300px, auto) 1fr;
-  /* top-align so the leaderboard starts at the art's top + the deck (given the
-     art's height) centres on the art's midline, not the taller now-column */
-  align-items: start;
-  gap: var(--sp-s5);
-  padding-top: var(--sp-s4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-top: var(--sp-s2);
 }
 .sp-now {
   min-width: 0;
@@ -1077,7 +1073,8 @@
 .sp-keys {
   display: flex;
   align-items: center;
-  gap: var(--sp-s6);
+  justify-content: center;
+  gap: var(--sp-s8);
 }
 .sp-keys.off {
   opacity: 0.4;
@@ -1739,6 +1736,73 @@
 }
 .sp-end-actions {
   margin-top: var(--sp-s2);
+}
+.sp-end-board {
+  width: 100%;
+  max-width: 340px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-s2);
+}
+.sp-end-board-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.sp-end-board-row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-s3);
+  padding: 4px 0;
+}
+.sp-end-board-row:first-child {
+  font-weight: 700;
+}
+.sp-end-board-rank {
+  width: 18px;
+  font-size: var(--sp-text-sm);
+  font-weight: 700;
+  color: var(--sp-ink-faint);
+  text-align: right;
+  flex-shrink: 0;
+}
+.sp-end-board-row:first-child .sp-end-board-rank {
+  color: var(--sp-neon);
+}
+.sp-end-board-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+  flex: 1;
+}
+.sp-end-board-meta b {
+  font-weight: 600;
+  font-size: var(--sp-text-sm);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sp-end-board-meta i {
+  font-style: normal;
+  font-size: var(--sp-text-xs);
+  color: var(--sp-ink-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sp-end-board-score {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-s1);
+  flex-shrink: 0;
+  font-size: var(--sp-text-sm);
+  font-weight: 700;
+  color: var(--sp-ink-dim);
+  font-variant-numeric: tabular-nums;
 }
 
 /* the wall: posters drifting */
